@@ -1,0 +1,19 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: SQL Schema Comparer Plugin
+Bundle-SymbolicName: org.iti.sqlSchemaComparerPlugin; singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Activator: sqlschemacomparerplugin.Activator
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ org.eclipse.core.resources,
+ org.eclipse.jdt.core;bundle-version="3.8.2",
+ org.eclipse.jdt.ui;bundle-version="3.8.1"
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
+Bundle-ClassPath: .,
+ libs/sql-schema-comparer.jar,
+ libs/jgrapht-0.8.3.jar,
+ libs/sqlite-jdbc-3.7.15-SNAPSHOT.jar,
+ libs/zql/classes/,
+ libs/javaparser-1.0.9.jar

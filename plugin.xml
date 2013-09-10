@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+   <extension
+         id="sqlSchemaComparerBuilder"
+         name="Sql Schema Comparer Builder"
+         point="org.eclipse.core.resources.builders">
+      <builder
+            hasNature="true">
+         <run
+               class="org.iti.sqlschemacomparerplugin.builder.SqlSchemaComparerBuilder">
+         </run>
+      </builder>
+   </extension>
+   <extension
+         id="sqlSchemaComparerNature"
+         name="Sq lSchema Comparer Nature"
+         point="org.eclipse.core.resources.natures">
+      <runtime>
+         <run
+               class="org.iti.sqlschemacomparerplugin.builder.SqlSchemaComparerNature">
+         </run>
+      </runtime>
+      <builder
+            id="org.iti.sqlSchemaComparerPlugin.sqlSchemaComparerBuilder">
+      </builder>
+   </extension>
+   <extension
+         point="org.eclipse.ui.popupMenus">
+      <objectContribution
+            adaptable="true"
+            objectClass="org.eclipse.core.resources.IProject"
+            nameFilter="*"
+            id="org.iti.sqlSchemaComparerPlugin.contribution1">
+         <action
+               label="Add/Remove SQL Schema Comparer"
+               class="org.iti.sqlschemacomparerplugin.builder.ToggleNatureAction"
+               menubarPath="additions"
+               enablesFor="+"
+               id="org.iti.sqlSchemaComparerPlugin.addRemoveNatureAction">
+         </action>
+      </objectContribution>
+   </extension>
+   <extension
+         id="sqlStatementProblem"
+         name="SQL Statement Problem"
+         point="org.eclipse.core.resources.markers">
+      <super
+            type="org.eclipse.core.resources.problemmarker">
+      </super>
+      <persistent
+            value="true">
+      </persistent>
+   </extension>
+   <extension
+         id="jpaEntityDefinitionProblem"
+         name="JPA Entity Definition Problem"
+         point="org.eclipse.core.resources.markers">
+      <super
+            type="org.eclipse.core.resources.problemmarker">
+      </super>
+      <persistent
+            value="true">
+      </persistent>
+   </extension>
+
+</plugin>
