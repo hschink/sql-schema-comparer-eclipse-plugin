@@ -19,6 +19,7 @@
 
 package org.iti.sqlschemacomparerplugin.builder;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -41,6 +42,7 @@ import org.iti.sqlSchemaComparison.frontends.SqlStatementFrontend;
 import org.iti.sqlSchemaComparison.frontends.database.SqliteSchemaFrontend;
 import org.iti.sqlSchemaComparison.frontends.technologies.IJPASchemaFrontend;
 import org.iti.sqlSchemaComparison.vertex.ISqlElement;
+import org.iti.sqlSchemaComparison.vertex.SqlTableVertex;
 import org.iti.sqlschemacomparerplugin.utils.EclipseJPASchemaFrontend;
 import org.iti.sqlschemacomparerplugin.utils.ParseUtils;
 import org.iti.sqlschemacomparerplugin.visitors.SQLiteDatabaseFinder;
@@ -200,6 +202,8 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 				
 				message += getErrorMessage(result.getMissingColumns(), "Missing Columns");
 				
+				message += getErrorMessage(result.getMissingButReachableColumns(), "Missing but reachable Columns");
+
 				addMarker(SQL_STATEMENT_MARKER_TYPE, file, message, entry.getValue(), IMarker.SEVERITY_ERROR);
 			}
 		}
@@ -218,8 +222,54 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 			
 			return message.toString() + "]";
 		}
+
+		return "";
+	}
+
+	private String getErrorMessage(Map<ISqlElement, List<List<ISqlElement>>> list, String title) {
+		if (list.size() > 0) {
+			StringBuilder message = new StringBuilder();
+
+			message.append(title + ": [");
+
+			for (ISqlElement element : list.keySet()) {
+				message.append(element.getSqlElementId());
+
+				setReachablePathString(message, list.get(element).get(0));
+
+				message.append(", ");
+			}
+
+			message.setLength(message.length() - 2);
+
+			return message.toString() + "]";
+		}
 		
 		return "";
+	}
+
+	private void setReachablePathString(StringBuilder message, List<ISqlElement> list) {
+		List<ISqlElement> tables = new ArrayList<>();
+
+		message.append(" (");
+
+		for (ISqlElement element : list) {
+			if (element instanceof SqlTableVertex) {
+				tables.add(element);
+			}
+		}
+
+		for (int x = 0; x < tables.size(); x++) {
+			ISqlElement element = tables.get(x);
+
+			message.append(element.getSqlElementId().toString());
+
+			if (x < tables.size() - 1) {
+				message.append(" > ");
+			}
+		}
+
+		message.append(")");
 	}
 
 	private SqlStatementExpectationValidator statementValidator;
