@@ -188,24 +188,29 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 
 	private void checkSqlStatement(IFile file, Entry<String, Integer> entry) {
 		ISqlSchemaFrontend frontend = new SqlStatementFrontend(entry.getKey(), null);
-		Graph<ISqlElement, DefaultEdge> statementSchema = frontend.createSqlSchema();
 		
-		if (statementSchema != null) {
-			SqlStatementExpectationValidationResult result = statementValidator.computeGraphMatching(statementSchema);
-			
-			if (resultsAvaiable(result)) {
-				String message = getErrorMessage(result.getMissingTables(), "Missing Tables");
+		try {
+			Graph<ISqlElement, DefaultEdge> statementSchema = frontend.createSqlSchema();
+		
+			if (statementSchema != null) {
+				SqlStatementExpectationValidationResult result = statementValidator.computeGraphMatching(statementSchema);
 				
-				if (message != "" && result.getMissingColumns().size() > 0) {
-					message += " ";
+				if (resultsAvaiable(result)) {
+					String message = getErrorMessage(result.getMissingTables(), "Missing Tables");
+					
+					if (message != "" && result.getMissingColumns().size() > 0) {
+						message += " ";
+					}
+					
+					message += getErrorMessage(result.getMissingColumns(), "Missing Columns");
+					
+					message += getErrorMessage(result.getMissingButReachableColumns(), "Missing but reachable Columns");
+	
+					addMarker(SQL_STATEMENT_MARKER_TYPE, file, message, entry.getValue(), IMarker.SEVERITY_ERROR);
 				}
-				
-				message += getErrorMessage(result.getMissingColumns(), "Missing Columns");
-				
-				message += getErrorMessage(result.getMissingButReachableColumns(), "Missing but reachable Columns");
-
-				addMarker(SQL_STATEMENT_MARKER_TYPE, file, message, entry.getValue(), IMarker.SEVERITY_ERROR);
 			}
+		} catch (Exception ex) {
+			addMarker(SQL_STATEMENT_MARKER_TYPE, file, ex.getMessage(), entry.getValue(), IMarker.SEVERITY_ERROR);
 		}
 	}
 
