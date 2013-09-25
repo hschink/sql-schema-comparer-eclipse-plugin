@@ -278,15 +278,16 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 	}
 
 	private SqlStatementExpectationValidator statementValidator;
+	private long modificationStamp;
 	
 	protected void fullBuild(final IProgressMonitor monitor)
 			throws CoreException {
 		try {
-			SQLiteDatabaseFinder visitor = findSqliteDatabaseFile();
+			IFile sqliteDatabase = findSqliteDatabaseFile();
 			
 			statementValidator = null;
 			
-			initializeSqlSchemaComparison(visitor);
+			initializeSqlSchemaComparison(sqliteDatabase);
 			
 			checkDatabaseAccess();
 		} catch (CoreException e) {
@@ -295,26 +296,35 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 
 	protected void incrementalBuild(IResourceDelta delta,
 			IProgressMonitor monitor) throws CoreException {
-		if (statementValidator == null) {
-			SQLiteDatabaseFinder visitor = findSqliteDatabaseFile();
-			
-			initializeSqlSchemaComparison(visitor);
+		IFile sqliteDatabase = findSqliteDatabaseFile();
+		
+		if (statementValidator == null || databaseChanged(sqliteDatabase)) {
+			initializeSqlSchemaComparison(sqliteDatabase);
 		}
 		
 		checkDatabaseAccess(delta);
 	}
 
-	private SQLiteDatabaseFinder findSqliteDatabaseFile() throws CoreException {
+	private boolean databaseChanged(IFile file) throws CoreException {
+		file.refreshLocal(IResource.DEPTH_ZERO, null);
+		
+		return file.getModificationStamp() != modificationStamp;
+	}
+
+	private IFile findSqliteDatabaseFile() throws CoreException {
 		SQLiteDatabaseFinder visitor = new SQLiteDatabaseFinder();
 		
 		getProject().accept(visitor);
 		
-		return visitor;
+		return visitor.sqliteDatabase;
 	}
 
-	private void initializeSqlSchemaComparison(SQLiteDatabaseFinder visitor) {
-		if (visitor.sqliteDatabaseFound()) {
-			Graph<ISqlElement, DefaultEdge> schema = generateSqlDatabaseSchema(visitor.sqliteDatabase);
+	private void initializeSqlSchemaComparison(IFile file) {
+		Graph<ISqlElement, DefaultEdge> schema = null;
+		
+		if (file != null) {
+			schema = generateSqlDatabaseSchema(file);
+			modificationStamp = file.getModificationStamp();
 			
 			statementValidator = new SqlStatementExpectationValidator(schema);
 		}
