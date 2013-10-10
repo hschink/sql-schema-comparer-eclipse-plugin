@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Observable;
 
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.iti.sqlSchemaComparison.SqlSchemaComparer;
@@ -12,6 +13,7 @@ import org.iti.sqlSchemaComparison.SqlSchemaComparisonResult;
 import org.iti.sqlSchemaComparison.frontends.ISqlSchemaFrontend;
 import org.iti.sqlSchemaComparison.frontends.database.SqliteSchemaFrontend;
 import org.iti.sqlSchemaComparison.vertex.ISqlElement;
+import org.iti.sqlschemacomparerplugin.visitors.SQLiteDatabaseFinder;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
 
@@ -36,6 +38,14 @@ public class SqlSchemaManager extends Observable {
 	}
 
 	private SqlSchemaComparisonResult result = null;
+
+	public boolean updateSchema(IProject project) throws CoreException {
+		SQLiteDatabaseFinder visitor = new SQLiteDatabaseFinder();
+
+		project.accept(visitor);
+
+		return visitor.sqliteDatabase != null && updateSchema(visitor.sqliteDatabase);
+	}
 
 	public boolean updateSchema(IFile file) throws CoreException {
 		ISqlSchemaFrontend frontend = new SqliteSchemaFrontend(file.getLocation().toString());

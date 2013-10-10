@@ -45,7 +45,6 @@ import org.iti.sqlSchemaComparison.vertex.SqlTableVertex;
 import org.iti.sqlschemacomparerplugin.utils.EclipseJPASchemaFrontend;
 import org.iti.sqlschemacomparerplugin.utils.ParseUtils;
 import org.iti.sqlschemacomparerplugin.utils.SqlSchemaManager;
-import org.iti.sqlschemacomparerplugin.visitors.SQLiteDatabaseFinder;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
 
@@ -291,14 +290,6 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 		checkDatabaseAccess(delta);
 	}
 
-	private IFile findSqliteDatabaseFile() throws CoreException {
-		SQLiteDatabaseFinder visitor = new SQLiteDatabaseFinder();
-		
-		getProject().accept(visitor);
-		
-		return visitor.sqliteDatabase;
-	}
-
 	private void initStatementValidator() {
 		try {
 			tryInitStatementValidator();
@@ -310,9 +301,8 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 
 	private void tryInitStatementValidator() throws CoreException {
 		SqlSchemaManager schemaManager = sqlschemacomparerplugin.Activator.getDefault().getSchemaManager();
-		IFile sqliteDatabase = findSqliteDatabaseFile();
 		
-		if (sqliteDatabase != null && schemaManager.updateSchema(sqliteDatabase)) {
+		if (schemaManager.updateSchema(getProject())) {
 			statementValidator = new SqlStatementExpectationValidator(schemaManager.getCurrentSchema());
 		}
 	}
