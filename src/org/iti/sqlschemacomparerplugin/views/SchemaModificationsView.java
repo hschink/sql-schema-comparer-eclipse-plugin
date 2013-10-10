@@ -11,10 +11,16 @@
 
 package org.iti.sqlschemacomparerplugin.views;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Map.Entry;
 import java.util.Observable;
 import java.util.Observer;
 
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.jface.viewers.ISelection;
+import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
@@ -22,6 +28,9 @@ import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
+import org.eclipse.ui.ISelectionListener;
+import org.eclipse.ui.ISelectionService;
+import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.part.ViewPart;
 import org.iti.sqlSchemaComparison.SchemaModification;
 import org.iti.sqlSchemaComparison.SqlSchemaComparisonResult;
@@ -104,11 +113,82 @@ public class SchemaModificationsView extends ViewPart {
 	
 	@Override
 	public void createPartControl(Composite parent) {
+		createSchemaModificationsView(parent);
+
+		registerSelectionListenerForInitialSchemaUpdate();
+	}
+
+	private void createSchemaModificationsView(Composite parent) {
 		schemaModificationsList = new Tree(parent, SWT.VIRTUAL | SWT.BORDER);
-		
+
 		schemaModificationsList.addListener(SWT.SetData, new SchemaChangeDataListener());
 
 		schemaModificationsList.setItemCount(1);
+	}
+
+	private class ProjectSelectionListener implements ISelectionListener {
+
+		private ISelectionService service = null;
+
+		public ProjectSelectionListener(ISelectionService service) {
+			this.service = service;
+		}
+
+		@Override
+		public void selectionChanged(IWorkbenchPart part, ISelection selection) {
+			if (!selection.isEmpty()) {
+				updateSchema(selection);
+			}
+		}
+
+		private void updateSchema(ISelection selection) {
+			SqlSchemaManager schemaManager = sqlschemacomparerplugin.Activator.getDefault().getSchemaManager();
+
+			try {
+				IProject project = getCurrentProject(selection);
+
+				if (schemaManager.updateSchema(project)) {
+					service.removeSelectionListener(this);
+				}
+			} catch (CoreException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalArgumentException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+
+		private IProject getCurrentProject(ISelection selection) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException{
+			IProject project = null;
+
+			if(selection instanceof IStructuredSelection) {
+				Object element = ((IStructuredSelection)selection).getFirstElement();
+
+				if (element != null) {
+					for (Method method : element.getClass().getMethods()) {
+						if (method.getName().equals("getProject")) {
+							project = (IProject)method.invoke(element, new Object[] {});
+							break;
+						}
+					}
+				}
+			}
+
+			return project;
+		}
+	}
+
+	private void registerSelectionListenerForInitialSchemaUpdate() {
+		ISelectionService service = getSite().getWorkbenchWindow().getSelectionService();
+
+		service.addSelectionListener(new ProjectSelectionListener(service));
 	}
 
 	@Override
