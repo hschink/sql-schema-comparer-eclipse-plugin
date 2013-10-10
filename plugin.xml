@@ -15,7 +15,7 @@
    </extension>
    <extension
          id="sqlSchemaComparerNature"
-         name="Sq lSchema Comparer Nature"
+         name="Sql Schema Comparer Nature"
          point="org.eclipse.core.resources.natures">
       <runtime>
          <run
@@ -63,6 +63,27 @@
       <persistent
             value="true">
       </persistent>
+   </extension>
+   <extension
+         point="org.eclipse.ui.views">
+      <category
+            id="org.iti.sqlschemacomparerplugin"
+            name="SQL Schema Comparer">
+      </category>
+      <view
+            category="org.iti.sqlschemacomparerplugin"
+            class="org.iti.sqlschemacomparerplugin.views.SchemaModificationsView"
+            icon="icons/sample.gif"
+            id="org.iti.sqlschemacomparerplugin.view"
+            name="SQL Schema Modifications"
+            restorable="true">
+      </view>
+   </extension>
+   <extension
+         point="org.eclipse.ui.perspectiveExtensions">
+      <perspectiveExtension
+            targetID="org.eclipse.jdt.ui.JavaPerspective">
+      </perspectiveExtension>
    </extension>
 
 </plugin>

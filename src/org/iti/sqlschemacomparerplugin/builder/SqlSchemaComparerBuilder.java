@@ -39,13 +39,12 @@ import org.iti.sqlSchemaComparison.SqlStatementExpectationValidationResult;
 import org.iti.sqlSchemaComparison.SqlStatementExpectationValidator;
 import org.iti.sqlSchemaComparison.frontends.ISqlSchemaFrontend;
 import org.iti.sqlSchemaComparison.frontends.SqlStatementFrontend;
-import org.iti.sqlSchemaComparison.frontends.database.SqliteSchemaFrontend;
 import org.iti.sqlSchemaComparison.frontends.technologies.IJPASchemaFrontend;
 import org.iti.sqlSchemaComparison.vertex.ISqlElement;
 import org.iti.sqlSchemaComparison.vertex.SqlTableVertex;
 import org.iti.sqlschemacomparerplugin.utils.EclipseJPASchemaFrontend;
 import org.iti.sqlschemacomparerplugin.utils.ParseUtils;
-import org.iti.sqlschemacomparerplugin.visitors.SQLiteDatabaseFinder;
+import org.iti.sqlschemacomparerplugin.utils.SqlSchemaManager;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
 
@@ -278,70 +277,51 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 	}
 
 	private SqlStatementExpectationValidator statementValidator;
-	private long modificationStamp;
 	
-	protected void fullBuild(final IProgressMonitor monitor)
-			throws CoreException {
-		try {
-			IFile sqliteDatabase = findSqliteDatabaseFile();
-			
-			statementValidator = null;
-			
-			initializeSqlSchemaComparison(sqliteDatabase);
-			
-			checkDatabaseAccess();
-		} catch (CoreException e) {
-		}
+	protected void fullBuild(final IProgressMonitor monitor) {
+		initStatementValidator();
+		
+		checkDatabaseAccess();
 	}
 
-	protected void incrementalBuild(IResourceDelta delta,
-			IProgressMonitor monitor) throws CoreException {
-		IFile sqliteDatabase = findSqliteDatabaseFile();
-		
-		if (statementValidator == null || databaseChanged(sqliteDatabase)) {
-			initializeSqlSchemaComparison(sqliteDatabase);
-		}
+	protected void incrementalBuild(IResourceDelta delta, IProgressMonitor monitor) {
+		initStatementValidator();
 		
 		checkDatabaseAccess(delta);
 	}
 
-	private boolean databaseChanged(IFile file) throws CoreException {
-		file.refreshLocal(IResource.DEPTH_ZERO, null);
-		
-		return file.getModificationStamp() != modificationStamp;
-	}
-
-	private IFile findSqliteDatabaseFile() throws CoreException {
-		SQLiteDatabaseFinder visitor = new SQLiteDatabaseFinder();
-		
-		getProject().accept(visitor);
-		
-		return visitor.sqliteDatabase;
-	}
-
-	private void initializeSqlSchemaComparison(IFile file) {
-		Graph<ISqlElement, DefaultEdge> schema = null;
-		
-		if (file != null) {
-			schema = generateSqlDatabaseSchema(file);
-			modificationStamp = file.getModificationStamp();
-			
-			statementValidator = new SqlStatementExpectationValidator(schema);
+	private void initStatementValidator() {
+		try {
+			tryInitStatementValidator();
+		} catch (CoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 
-	private Graph<ISqlElement, DefaultEdge> generateSqlDatabaseSchema(IFile sqliteDatabase) {
-		String sqliteDatabasePath = sqliteDatabase.getLocation().toString();
-		SqliteSchemaFrontend frontend = new SqliteSchemaFrontend(sqliteDatabasePath);
+	private void tryInitStatementValidator() throws CoreException {
+		SqlSchemaManager schemaManager = sqlschemacomparerplugin.Activator.getDefault().getSchemaManager();
 		
-		return frontend.createSqlSchema();
+		if (schemaManager.updateSchema(getProject())) {
+			statementValidator = new SqlStatementExpectationValidator(schemaManager.getCurrentSchema());
+		}
 	}
 
-	private void checkDatabaseAccess() throws CoreException {
-		getProject().accept(new SampleResourceVisitor());
+	private void checkDatabaseAccess() {
+		try {
+			getProject().accept(new SampleResourceVisitor());
+		} catch (CoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
-	private void checkDatabaseAccess(IResourceDelta delta) throws CoreException {
-		delta.accept(new SampleDeltaVisitor());
+	private void checkDatabaseAccess(IResourceDelta delta) {
+		try {
+			delta.accept(new SampleDeltaVisitor());
+		} catch (CoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 }
