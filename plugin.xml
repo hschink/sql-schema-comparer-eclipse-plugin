@@ -33,8 +33,8 @@
             locationURI="popup:org.eclipse.ui.popup.any?after=additions">
          <command
                commandId="org.iti.sqlschemacomparerplugin.toggleNature"
-               label="Add/Remove SQL Schema Comparer"
-               style="push"
+               label="SQL Schema Comparer"
+               style="toggle"
                tooltip="(De-)Activate SQL Schema Comparer">
                <visibleWhen checkEnabled="false">
          			<with variable="selection">
@@ -76,6 +76,10 @@
             defaultHandler="org.iti.sqlschemacomparerplugin.ToggleNatureHandler"
             id="org.iti.sqlschemacomparerplugin.toggleNature"
             name="ToggleNature">
+            <state
+         		class="org.eclipse.ui.handlers.RegistryToggleState"
+         		id="org.iti.sqlschemacomparerplugin.toggleNature.toggleState">
+   			</state>
       </command>
    </extension>
 
