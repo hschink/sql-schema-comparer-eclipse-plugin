@@ -15,7 +15,7 @@
    </extension>
    <extension
          id="sqlSchemaComparerNature"
-         name="Sq lSchema Comparer Nature"
+         name="Sql Schema Comparer Nature"
          point="org.eclipse.core.resources.natures">
       <runtime>
          <run
