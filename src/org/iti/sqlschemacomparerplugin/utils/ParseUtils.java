@@ -65,7 +65,7 @@ public class ParseUtils {
 	}
 	
 	public static ASTNode parse(ICompilationUnit unit) {
-		ASTParser parser = ASTParser.newParser(AST.JLS4);
+		ASTParser parser = ASTParser.newParser(AST.JLS8);
 		parser.setKind(ASTParser.K_COMPILATION_UNIT);
 		parser.setSource(unit);
 		parser.setResolveBindings(true);
