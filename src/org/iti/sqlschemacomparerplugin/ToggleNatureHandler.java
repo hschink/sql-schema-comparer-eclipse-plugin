@@ -1,5 +1,6 @@
 /*******************************************************************************
  * Copyright (c) 10.09.2013 Hagen Schink.
+ * 
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -9,73 +10,58 @@
  *    Hagen Schink - initial API and implementation and/or initial documentation
  *******************************************************************************/
 
-package org.iti.sqlschemacomparerplugin.builder;
+package org.iti.sqlschemacomparerplugin;
 
 import java.util.Iterator;
 
+import org.eclipse.core.commands.AbstractHandler;
+import org.eclipse.core.commands.ExecutionEvent;
+import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IProjectDescription;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IAdaptable;
-import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
-import org.eclipse.ui.IObjectActionDelegate;
-import org.eclipse.ui.IWorkbenchPart;
+import org.eclipse.ui.handlers.HandlerUtil;
+import org.iti.sqlschemacomparerplugin.builder.SqlSchemaComparerNature;
 
-public class ToggleNatureAction implements IObjectActionDelegate {
+public class ToggleNatureHandler extends AbstractHandler {
 
-	private ISelection selection;
+	@Override
+	public Object execute(ExecutionEvent event) throws ExecutionException {
+		ISelection currentSelection = HandlerUtil.getCurrentSelection(event);
+		IProject selectedProject = getSelectedProject(currentSelection);
+		
+		toggleNature(selectedProject);
+		
+		return null;
+	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.eclipse.ui.IActionDelegate#run(org.eclipse.jface.action.IAction)
-	 */
-	public void run(IAction action) {
-		if (selection instanceof IStructuredSelection) {
-			for (Iterator<?> it = ((IStructuredSelection) selection).iterator(); it
+	private IProject getSelectedProject(ISelection currentSelection) {
+		IProject project = null;
+		
+		if (currentSelection instanceof IStructuredSelection) {
+			for (Iterator<?> it = ((IStructuredSelection) currentSelection).iterator(); it
 					.hasNext();) {
 				Object element = it.next();
-				IProject project = null;
+				
 				if (element instanceof IProject) {
 					project = (IProject) element;
 				} else if (element instanceof IAdaptable) {
 					project = (IProject) ((IAdaptable) element)
 							.getAdapter(IProject.class);
 				}
+				
 				if (project != null) {
-					toggleNature(project);
+					break;
 				}
 			}
 		}
+		
+		return project;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.eclipse.ui.IActionDelegate#selectionChanged(org.eclipse.jface.action.IAction,
-	 *      org.eclipse.jface.viewers.ISelection)
-	 */
-	public void selectionChanged(IAction action, ISelection selection) {
-		this.selection = selection;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.eclipse.ui.IObjectActionDelegate#setActivePart(org.eclipse.jface.action.IAction,
-	 *      org.eclipse.ui.IWorkbenchPart)
-	 */
-	public void setActivePart(IAction action, IWorkbenchPart targetPart) {
-	}
-
-	/**
-	 * Toggles sample nature on a project
-	 * 
-	 * @param project
-	 *            to have sample nature added or removed
-	 */
 	private void toggleNature(IProject project) {
 		try {
 			IProjectDescription description = project.getDescription();
@@ -103,5 +89,4 @@ public class ToggleNatureAction implements IObjectActionDelegate {
 		} catch (CoreException e) {
 		}
 	}
-
 }
