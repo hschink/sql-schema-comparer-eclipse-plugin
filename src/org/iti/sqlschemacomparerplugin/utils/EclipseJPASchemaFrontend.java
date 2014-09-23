@@ -258,7 +258,7 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 		}
 
 		private boolean hasAnnotationsOfType(String[] relationshipAnnotations,
-				List modifiers) {
+				List<?> modifiers) {
 			for (String annotationType : relationshipAnnotations) {
 				if (hasAnnotationOfType(annotationType, modifiers)) {
 					return true;
@@ -292,7 +292,7 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 		return (value == null) ? n.getName().toString() : value;
 	}
 	
-	private static boolean hasAnnotationOfType(String type, List modifiers) {
+	private static boolean hasAnnotationOfType(String type, List<?> modifiers) {
 		for (Object object : modifiers) {
 			IExtendedModifier modifier = (IExtendedModifier)object;
 			
@@ -308,7 +308,7 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 		return false;
 	}
 	
-	private static String getAnnotationMemberValue(List modifiers,
+	private static String getAnnotationMemberValue(List<?> modifiers,
 			String annotationName,
 			String attributeName) {
 		for (Object object : modifiers) {
