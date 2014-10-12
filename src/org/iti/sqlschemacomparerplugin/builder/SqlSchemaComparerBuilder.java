@@ -46,8 +46,9 @@ import org.iti.sqlSchemaComparison.vertex.ISqlElement;
 import org.iti.sqlSchemaComparison.vertex.SqlTableVertex;
 import org.iti.sqlschemacomparerplugin.utils.EclipseJPASchemaFrontend;
 import org.iti.sqlschemacomparerplugin.utils.ParseUtils;
-import org.jgrapht.Graph;
 import org.iti.sqlschemacomparerplugin.visitors.FileByEndingFinder;
+import org.iti.structureGraph.nodes.IStructureElement;
+import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
 
 public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
@@ -166,7 +167,7 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 			
 			if (statementValidator != null) {
 				IJPASchemaFrontend frontend = new EclipseJPASchemaFrontend(file);
-				Graph<ISqlElement, DefaultEdge> statementSchema = frontend.createSqlSchema();
+				DirectedGraph<IStructureElement, DefaultEdge> statementSchema = frontend.createSqlSchema();
 				
 				if (statementSchema != null) {
 					SqlStatementExpectationValidationResult result = statementValidator.computeGraphMatching(statementSchema);
@@ -205,7 +206,7 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 		ISqlSchemaFrontend frontend = new SqlStatementFrontend(entry.getKey(), null);
 		
 		try {
-			Graph<ISqlElement, DefaultEdge> statementSchema = frontend.createSqlSchema();
+			DirectedGraph<IStructureElement, DefaultEdge> statementSchema = frontend.createSqlSchema();
 		
 			if (statementSchema != null) {
 				SqlStatementExpectationValidationResult result = statementValidator.computeGraphMatching(statementSchema);
