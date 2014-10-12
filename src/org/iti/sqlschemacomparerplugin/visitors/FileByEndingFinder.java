@@ -18,40 +18,46 @@ import org.eclipse.core.resources.IResourceDeltaVisitor;
 import org.eclipse.core.resources.IResourceVisitor;
 import org.eclipse.core.runtime.CoreException;
 
-public class SQLiteDatabaseFinder implements IResourceVisitor,
+public class FileByEndingFinder implements IResourceVisitor,
 		IResourceDeltaVisitor {
 
-	public boolean sqliteDatabaseFound() {
-		return sqliteDatabase != null;
+	private String fileEnding = "";
+
+	public boolean fileFound() {
+		return file != null;
 	}
 	
-	public IFile sqliteDatabase = null;
+	public IFile file = null;
+
+	public FileByEndingFinder(String fileEnding) {
+		this.fileEnding = fileEnding;
+	}
 	
 	@Override
 	public boolean visit(IResourceDelta delta) throws CoreException {
 		IResource resource = delta.getResource();
 		switch (delta.getKind()) {
 		case IResourceDelta.ADDED:
-			extractSqliteDatabaseFile(resource);
+			extractFile(resource);
 			break;
 		case IResourceDelta.CHANGED:
-			extractSqliteDatabaseFile(resource);
+			extractFile(resource);
 			break;
 		}
 
-		return !sqliteDatabaseFound();
+		return !fileFound();
 	}
 
 	@Override
 	public boolean visit(IResource resource) throws CoreException {
-		extractSqliteDatabaseFile(resource);
+		extractFile(resource);
 		
-		return !sqliteDatabaseFound();
+		return !fileFound();
 	}
 
-	private void extractSqliteDatabaseFile(IResource resource) {
-		if (resource instanceof IFile && resource.getName().endsWith(".sqlite")) {
-			sqliteDatabase = (IFile)resource;
+	private void extractFile(IResource resource) {
+		if (resource instanceof IFile && resource.getName().endsWith("." + fileEnding)) {
+			file = (IFile)resource;
 		}
 	}
 }

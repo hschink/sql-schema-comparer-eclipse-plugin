@@ -45,8 +45,8 @@ import org.iti.sqlSchemaComparison.vertex.ISqlElement;
 import org.iti.sqlSchemaComparison.vertex.SqlTableVertex;
 import org.iti.sqlschemacomparerplugin.utils.EclipseJPASchemaFrontend;
 import org.iti.sqlschemacomparerplugin.utils.ParseUtils;
-import org.iti.sqlschemacomparerplugin.visitors.SQLiteDatabaseFinder;
 import org.jgrapht.Graph;
+import org.iti.sqlschemacomparerplugin.visitors.FileByEndingFinder;
 import org.jgrapht.graph.DefaultEdge;
 
 public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
@@ -85,6 +85,20 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 			checkEntityDefinition(resource);
 			//return true to continue visiting children.
 			return true;
+		}
+	}
+
+	private enum DatabaseType {
+		SQLITE
+	}
+
+	private class DatabaseFile {
+		public IFile databaseFile;
+		public DatabaseType databaseType;
+
+		public DatabaseFile(IFile databaseFile, DatabaseType databaseType) {
+			this.databaseFile = databaseFile;
+			this.databaseType = databaseType;
 		}
 	}
 
@@ -283,11 +297,11 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 	protected void fullBuild(final IProgressMonitor monitor)
 			throws CoreException {
 		try {
-			IFile sqliteDatabase = findSqliteDatabaseFile();
+			DatabaseFile databaseFile = findDatabaseFile();
 			
 			statementValidator = null;
 			
-			initializeSqlSchemaComparison(sqliteDatabase);
+			initializeSqlSchemaComparison(databaseFile);
 			
 			checkDatabaseAccess();
 		} catch (CoreException e) {
@@ -296,43 +310,78 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 
 	protected void incrementalBuild(IResourceDelta delta,
 			IProgressMonitor monitor) throws CoreException {
-		IFile sqliteDatabase = findSqliteDatabaseFile();
+		DatabaseFile databaseFile = findDatabaseFile();
 		
-		if (statementValidator == null || databaseChanged(sqliteDatabase)) {
-			initializeSqlSchemaComparison(sqliteDatabase);
+		if (statementValidator == null || databaseChanged(databaseFile)) {
+			initializeSqlSchemaComparison(databaseFile);
 		}
 		
 		checkDatabaseAccess(delta);
 	}
 
-	private boolean databaseChanged(IFile file) throws CoreException {
-		file.refreshLocal(IResource.DEPTH_ZERO, null);
-		
-		return file.getModificationStamp() != modificationStamp;
+	private DatabaseFile findDatabaseFile() throws CoreException {
+		DatabaseFile databaseFile = findSqliteDatabaseFile();
+
+		if (databaseFile == null) {
+			databaseFile = findH2DatabaseFile();
+		}
+
+		return databaseFile;
 	}
 
-	private IFile findSqliteDatabaseFile() throws CoreException {
-		SQLiteDatabaseFinder visitor = new SQLiteDatabaseFinder();
+	private boolean databaseChanged(DatabaseFile databaseFile) throws CoreException {
+		databaseFile.databaseFile.refreshLocal(IResource.DEPTH_ZERO, null);
+		
+		return databaseFile.databaseFile.getModificationStamp() != modificationStamp;
+	}
+
+	private DatabaseFile findSqliteDatabaseFile() throws CoreException {
+		return findDatabaseFile(DatabaseType.SQLITE);
+	}
+
+	private DatabaseFile findDatabaseFile(DatabaseType databaseType) throws CoreException {
+		DatabaseFile database = null;
+		FileByEndingFinder visitor = new FileByEndingFinder(getFileEnding(databaseType));
 		
 		getProject().accept(visitor);
+
+		if (visitor.fileFound()) {
+			database = new DatabaseFile(visitor.file, databaseType);
+		}
 		
-		return visitor.sqliteDatabase;
+		return database;
 	}
 
-	private void initializeSqlSchemaComparison(IFile file) {
-		Graph<ISqlElement, DefaultEdge> schema = null;
+	private String getFileEnding(DatabaseType databaseType) {
+		switch (databaseType) {
+		case SQLITE:
+			return "sqlite";
+		default:
+			throw new IllegalArgumentException(databaseType.toString()
+					+ "is not supported!");
+		}
+	}
+
+	private void initializeSqlSchemaComparison(DatabaseFile databaseFile) {
+		DirectedGraph<IStructureElement, DefaultEdge> schema = null;
 		
-		if (file != null) {
-			schema = generateSqlDatabaseSchema(file);
-			modificationStamp = file.getModificationStamp();
+		if (databaseFile != null) {
+			schema = generateSqlDatabaseSchema(databaseFile);
+			modificationStamp = databaseFile.databaseFile.getModificationStamp();
 			
 			statementValidator = new SqlStatementExpectationValidator(schema);
 		}
 	}
 
-	private Graph<ISqlElement, DefaultEdge> generateSqlDatabaseSchema(IFile sqliteDatabase) {
-		String sqliteDatabasePath = sqliteDatabase.getLocation().toString();
-		SqliteSchemaFrontend frontend = new SqliteSchemaFrontend(sqliteDatabasePath);
+	private DirectedGraph<IStructureElement, DefaultEdge> generateSqlDatabaseSchema(DatabaseFile databaseFile) {
+		String databasePath = databaseFile.databaseFile.getLocation().toString();
+		ISqlSchemaFrontend frontend = null;
+
+		switch (databaseFile.databaseType) {
+		case SQLITE:
+			frontend = new SqliteSchemaFrontend(databasePath);
+			break;
+		}
 		
 		return frontend.createSqlSchema();
 	}
