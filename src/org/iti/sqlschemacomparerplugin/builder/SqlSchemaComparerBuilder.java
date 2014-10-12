@@ -39,6 +39,7 @@ import org.iti.sqlSchemaComparison.SqlStatementExpectationValidationResult;
 import org.iti.sqlSchemaComparison.SqlStatementExpectationValidator;
 import org.iti.sqlSchemaComparison.frontends.ISqlSchemaFrontend;
 import org.iti.sqlSchemaComparison.frontends.SqlStatementFrontend;
+import org.iti.sqlSchemaComparison.frontends.database.H2SchemaFrontend;
 import org.iti.sqlSchemaComparison.frontends.database.SqliteSchemaFrontend;
 import org.iti.sqlSchemaComparison.frontends.technologies.IJPASchemaFrontend;
 import org.iti.sqlSchemaComparison.vertex.ISqlElement;
@@ -89,7 +90,7 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 	}
 
 	private enum DatabaseType {
-		SQLITE
+		SQLITE, H2
 	}
 
 	private class DatabaseFile {
@@ -339,6 +340,10 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 		return findDatabaseFile(DatabaseType.SQLITE);
 	}
 
+	private DatabaseFile findH2DatabaseFile() throws CoreException {
+		return findDatabaseFile(DatabaseType.H2);
+	}
+
 	private DatabaseFile findDatabaseFile(DatabaseType databaseType) throws CoreException {
 		DatabaseFile database = null;
 		FileByEndingFinder visitor = new FileByEndingFinder(getFileEnding(databaseType));
@@ -356,6 +361,8 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 		switch (databaseType) {
 		case SQLITE:
 			return "sqlite";
+		case H2:
+			return "db";
 		default:
 			throw new IllegalArgumentException(databaseType.toString()
 					+ "is not supported!");
@@ -380,6 +387,9 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 		switch (databaseFile.databaseType) {
 		case SQLITE:
 			frontend = new SqliteSchemaFrontend(databasePath);
+			break;
+		case H2:
+			frontend = new H2SchemaFrontend(databasePath.replaceAll("\\.mv\\.db$", ""));
 			break;
 		}
 		
