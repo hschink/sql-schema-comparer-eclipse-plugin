@@ -58,6 +58,7 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 		public Map<String, TypeDeclaration> classDeclarations = new HashMap<>();
 		
 		private final static String TRANSIENT = "Transient";
+		private final static String JOIN_TABLE = "JoinTable";
 		private final static String ID = "Id";
 		
 		private DirectedGraph<IStructureElement, DefaultEdge> schema;
@@ -98,7 +99,10 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 
 		@Override
 		public boolean visit(MethodDeclaration node) {
-			if (isGetter(node) && !hasAnnotationOfType(TRANSIENT, node.modifiers())) {
+			List<?> modifiers = node.modifiers();
+			if (isGetter(node)
+					&& !hasAnnotationOfType(TRANSIENT, modifiers)
+					&& !hasAnnotationOfType(JOIN_TABLE, modifiers)) {
 				processMethod(node);
 			}
 			
