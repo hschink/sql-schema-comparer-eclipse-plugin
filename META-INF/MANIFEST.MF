@@ -12,8 +12,11 @@ Require-Bundle: org.eclipse.ui,
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Bundle-ClassPath: .,
- libs/sql-schema-comparer.jar,
+ libs/commons-lang3-3.3.2.jar,
  libs/jgrapht-0.8.3.jar,
+ libs/structureGraph-0.0.1.jar,
  libs/sqlite-jdbc-3.7.15-SNAPSHOT.jar,
+ libs/h2-1.4.181.jar,
+ libs/sql-schema-comparer.jar,
  libs/zql/classes/,
  libs/javaparser-1.0.9.jar
