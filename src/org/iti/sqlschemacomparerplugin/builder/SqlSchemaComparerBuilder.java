@@ -54,6 +54,8 @@ import org.iti.structureGraph.nodes.IStructureElement;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
 
+import zql.classes.org.gibello.zql.TokenMgrError;
+
 public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 
 	class SampleDeltaVisitor implements IResourceDeltaVisitor {
@@ -252,6 +254,8 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 					addMarker(SQL_STATEMENT_MARKER_TYPE, file, message, entry.getValue(), IMarker.SEVERITY_ERROR);
 				}
 			}
+		} catch (TokenMgrError ex) {
+
 		} catch (Exception ex) {
 			addMarker(SQL_STATEMENT_MARKER_TYPE, file, ex.getMessage(), entry.getValue(), IMarker.SEVERITY_ERROR);
 		}
