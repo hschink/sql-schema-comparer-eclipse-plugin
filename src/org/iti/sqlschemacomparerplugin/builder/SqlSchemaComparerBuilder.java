@@ -184,8 +184,18 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 						}
 						
 						for (ISqlElement column : result.getMissingColumns()) {
-							int lineNumber = ParseUtils.getLineNumber(file, ((ASTNode)column.getSourceElement()).getStartPosition());
-							addMarker(JPA_ENTITY_MARKER_TYPE, file, "Missing Column: " + column.getSqlElementId(), lineNumber, IMarker.SEVERITY_ERROR);
+							addColumnMarker(file, column, String.format("Missing Column: %s", column.getSqlElementId()));
+						}
+
+						for (ISqlElement column : result.getMissingButReachableColumns().keySet()) {
+							List<ISqlElement> pathElements = result.getMissingButReachableColumns().get(column).get(0);
+							StringBuilder message = new StringBuilder();
+
+							message.append("Missing but reachable Column ");
+							message.append(column.getSqlElementId());
+							setReachablePathString(message, pathElements);
+
+							addColumnMarker(file, column, message.toString());
 						}
 					}
 				}
@@ -200,6 +210,11 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 		default:
 			return new NullFormatter();
 		}
+	}
+
+	private void addColumnMarker(IFile file, ISqlElement column, String message) {
+		int lineNumber = ParseUtils.getLineNumber(file, ((ASTNode)column.getSourceElement()).getStartPosition());
+		addMarker(JPA_ENTITY_MARKER_TYPE, file, message, lineNumber, IMarker.SEVERITY_ERROR);
 	}
 
 	private boolean resultsAvaiable(
