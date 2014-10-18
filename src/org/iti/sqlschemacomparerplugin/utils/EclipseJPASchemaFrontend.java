@@ -47,6 +47,8 @@ import org.jgrapht.graph.SimpleDirectedGraph;
 
 public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 
+	private final static String VERSION = "Version";
+
 	private IFile file = null;
 	private IDatabaseIdentifierFormatter formatter = new NullFormatter();
 	
@@ -348,11 +350,13 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 	}
 
 	private static String getColumnName(MethodDeclaration n) {
-		return getColumnName(n, COLUMN);
-	}
+		String value = null;
 
-	private static String getColumnName(MethodDeclaration n, String type) {
-		String value = getAnnotationMemberValue(n.modifiers(), type, TABLE_NAME);
+		if (hasAnnotationOfType(VERSION, n.modifiers())) {
+			value = "Versions";
+		} else {
+			value = getAnnotationMemberValue(n.modifiers(), COLUMN, TABLE_NAME);
+		}
 		
 		return (value == null) ? n.getName().toString().substring(GETTER_PREFIX.length(), n.getName().toString().length()).toLowerCase()
 							   : value;
