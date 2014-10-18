@@ -46,6 +46,9 @@ import org.iti.sqlSchemaComparison.vertex.ISqlElement;
 import org.iti.sqlSchemaComparison.vertex.SqlTableVertex;
 import org.iti.sqlschemacomparerplugin.utils.EclipseJPASchemaFrontend;
 import org.iti.sqlschemacomparerplugin.utils.ParseUtils;
+import org.iti.sqlschemacomparerplugin.utils.databaseformatter.IDatabaseIdentifierFormatter;
+import org.iti.sqlschemacomparerplugin.utils.databaseformatter.NullFormatter;
+import org.iti.sqlschemacomparerplugin.utils.databaseformatter.UpperCaseFormatter;
 import org.iti.sqlschemacomparerplugin.visitors.FileByEndingFinder;
 import org.iti.structureGraph.nodes.IStructureElement;
 import org.jgrapht.DirectedGraph;
@@ -166,7 +169,7 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 			IFile file = (IFile) resource;
 			
 			if (statementValidator != null) {
-				IJPASchemaFrontend frontend = new EclipseJPASchemaFrontend(file);
+				IJPASchemaFrontend frontend = new EclipseJPASchemaFrontend(file, getFormatter());
 				DirectedGraph<IStructureElement, DefaultEdge> statementSchema = frontend.createSqlSchema();
 				
 				if (statementSchema != null) {
@@ -187,6 +190,15 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 					}
 				}
 			}
+		}
+	}
+
+	private IDatabaseIdentifierFormatter getFormatter() {
+		switch(databaseFile.databaseType) {
+		case H2:
+			return new UpperCaseFormatter();
+		default:
+			return new NullFormatter();
 		}
 	}
 
@@ -295,11 +307,12 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 
 	private SqlStatementExpectationValidator statementValidator;
 	private long modificationStamp;
-	
+	private DatabaseFile databaseFile;
+
 	protected void fullBuild(final IProgressMonitor monitor)
 			throws CoreException {
 		try {
-			DatabaseFile databaseFile = findDatabaseFile();
+			databaseFile = findDatabaseFile();
 			
 			statementValidator = null;
 			

@@ -38,6 +38,8 @@ import org.iti.sqlSchemaComparison.vertex.SqlElementFactory;
 import org.iti.sqlSchemaComparison.vertex.SqlElementType;
 import org.iti.sqlSchemaComparison.vertex.sqlColumn.IColumnConstraint;
 import org.iti.sqlSchemaComparison.vertex.sqlColumn.PrimaryKeyColumnConstraint;
+import org.iti.sqlschemacomparerplugin.utils.databaseformatter.IDatabaseIdentifierFormatter;
+import org.iti.sqlschemacomparerplugin.utils.databaseformatter.NullFormatter;
 import org.iti.structureGraph.nodes.IStructureElement;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
@@ -46,6 +48,7 @@ import org.jgrapht.graph.SimpleDirectedGraph;
 public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 
 	private IFile file = null;
+	private IDatabaseIdentifierFormatter formatter = new NullFormatter();
 	
 	private static class JPAAnnotationVisitor extends ASTVisitor {
 
@@ -58,9 +61,13 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 		private DirectedGraph<IStructureElement, DefaultEdge> schema;
 
 		private ISqlElement lastVisitedClass;
-		
-		public JPAAnnotationVisitor(DirectedGraph<IStructureElement, DefaultEdge> schema) {
+
+		private IDatabaseIdentifierFormatter formatter;
+
+		public JPAAnnotationVisitor(DirectedGraph<IStructureElement, DefaultEdge> schema,
+				IDatabaseIdentifierFormatter formatter) {
 			this.schema = schema;
+			this.formatter = formatter;
 		}
 
 		@Override
@@ -74,7 +81,7 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 		}
 
 		private void processClass(TypeDeclaration n) {
-			String tableName = getTableName(n);
+			String tableName = formatter.formatTable(getTableName(n));
 			ISqlElement table = SqlElementFactory.createSqlElement(SqlElementType.Table, tableName);
 			
 			table.setSourceElement(n);
@@ -101,7 +108,7 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 		}
 
 		private void processMethod(MethodDeclaration n) {
-			String id = getColumnName(n);
+			String id = formatter.formatColumn(getColumnName(n));
 			String type = "?";
 			List<IColumnConstraint> constraints = new ArrayList<>();
 			
@@ -227,10 +234,15 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 		private Map<String, String> classToTable = new HashMap<>();
 
 		private ISqlElement lastVisitedClass;
-		
-		public ForeignKeyVisitor(DirectedGraph<IStructureElement, DefaultEdge> schema, Map<String, String> classToTable) {
+
+		private IDatabaseIdentifierFormatter formatter;
+
+		public ForeignKeyVisitor(DirectedGraph<IStructureElement, DefaultEdge> schema,
+				Map<String, String> classToTable,
+				IDatabaseIdentifierFormatter formatter) {
 			this.schema = schema;
 			this.classToTable = classToTable;
+			this.formatter = formatter;
 		}
 
 		@Override
@@ -244,7 +256,7 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 		}
 
 		private void processClass(TypeDeclaration n) {
-			String id = getTableName(n);
+			String id = formatter.formatTable(getTableName(n));
 			
 			lastVisitedClass = SqlElementFactory.getMatchingSqlElement(SqlElementType.Table, id, schema.vertexSet());
 		}
@@ -274,7 +286,7 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 		}
 
 		private void processMethod(MethodDeclaration n) {
-			String columnId = lastVisitedClass.getSqlElementId() + "." + getColumnName(n);
+			String columnId = lastVisitedClass.getSqlElementId() + "." + formatter.formatColumn(getColumnName(n));
 			String foreignTableId = classToTable.get(n.getName().toString());
 			ISqlElement foreignKeyTable = SqlElementFactory.getMatchingSqlElement(SqlElementType.Table, foreignTableId, schema.vertexSet());
 			ISqlElement referencingColumn = SqlElementFactory.getMatchingSqlColumns(columnId, schema.vertexSet(), true).get(0);
@@ -377,7 +389,7 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 			DirectedGraph<IStructureElement, DefaultEdge> schema,
 			Map<String, String> classToTable, 
 			Map<String, TypeDeclaration> classDeclarations) {
-		JPAAnnotationVisitor visitor = new JPAAnnotationVisitor(schema);
+		JPAAnnotationVisitor visitor = new JPAAnnotationVisitor(schema, formatter);
 		cu.accept(visitor);
 		
 		classToTable.putAll(visitor.classToTable);
@@ -396,7 +408,7 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 			DirectedGraph<IStructureElement, DefaultEdge> schema,
 			Map<String, String> classToTable) {
 		
-		ForeignKeyVisitor visitor = new ForeignKeyVisitor(schema, classToTable);
+		ForeignKeyVisitor visitor = new ForeignKeyVisitor(schema, classToTable, formatter);
 		cu.accept(visitor);
 	}
 
@@ -405,5 +417,10 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 			throw new NullPointerException("Path to JPA file(s) must not be null or empty!");
 		
 		this.file = file;
+	}
+
+	public EclipseJPASchemaFrontend(IFile file, IDatabaseIdentifierFormatter formatter) {
+		this(file);
+		this.formatter = formatter;
 	}
 }
