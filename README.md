@@ -20,7 +20,7 @@ Near future versions of the plug-in will include [sql-schema-comparer][ssc]'s da
 Currently, there exists no update site. You may install the plug-in manually or you start it by importing the
 plug-in project into eclipse.
 
-You need to activate the plug-in by pressing _Add/Remove SQL Schema Comparer_ in the project's context menu.
+You need to activate the plug-in by pressing _SQL Schema Comparer_ in the project's context menu.
 
 ## License ##
 
