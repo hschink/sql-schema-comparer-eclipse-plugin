@@ -39,15 +39,22 @@ import org.iti.sqlSchemaComparison.SqlStatementExpectationValidationResult;
 import org.iti.sqlSchemaComparison.SqlStatementExpectationValidator;
 import org.iti.sqlSchemaComparison.frontends.ISqlSchemaFrontend;
 import org.iti.sqlSchemaComparison.frontends.SqlStatementFrontend;
+import org.iti.sqlSchemaComparison.frontends.database.H2SchemaFrontend;
 import org.iti.sqlSchemaComparison.frontends.database.SqliteSchemaFrontend;
 import org.iti.sqlSchemaComparison.frontends.technologies.IJPASchemaFrontend;
 import org.iti.sqlSchemaComparison.vertex.ISqlElement;
 import org.iti.sqlSchemaComparison.vertex.SqlTableVertex;
 import org.iti.sqlschemacomparerplugin.utils.EclipseJPASchemaFrontend;
 import org.iti.sqlschemacomparerplugin.utils.ParseUtils;
-import org.iti.sqlschemacomparerplugin.visitors.SQLiteDatabaseFinder;
-import org.jgrapht.Graph;
+import org.iti.sqlschemacomparerplugin.utils.databaseformatter.IDatabaseIdentifierFormatter;
+import org.iti.sqlschemacomparerplugin.utils.databaseformatter.NullFormatter;
+import org.iti.sqlschemacomparerplugin.utils.databaseformatter.UpperCaseFormatter;
+import org.iti.sqlschemacomparerplugin.visitors.FileByEndingFinder;
+import org.iti.structureGraph.nodes.IStructureElement;
+import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
+
+import zql.classes.org.gibello.zql.TokenMgrError;
 
 public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 
@@ -85,6 +92,20 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 			checkEntityDefinition(resource);
 			//return true to continue visiting children.
 			return true;
+		}
+	}
+
+	private enum DatabaseType {
+		SQLITE, H2
+	}
+
+	private class DatabaseFile {
+		public IFile databaseFile;
+		public DatabaseType databaseType;
+
+		public DatabaseFile(IFile databaseFile, DatabaseType databaseType) {
+			this.databaseFile = databaseFile;
+			this.databaseType = databaseType;
 		}
 	}
 
@@ -150,8 +171,8 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 			IFile file = (IFile) resource;
 			
 			if (statementValidator != null) {
-				IJPASchemaFrontend frontend = new EclipseJPASchemaFrontend(file);
-				Graph<ISqlElement, DefaultEdge> statementSchema = frontend.createSqlSchema();
+				IJPASchemaFrontend frontend = new EclipseJPASchemaFrontend(file, getFormatter());
+				DirectedGraph<IStructureElement, DefaultEdge> statementSchema = frontend.createSqlSchema();
 				
 				if (statementSchema != null) {
 					SqlStatementExpectationValidationResult result = statementValidator.computeGraphMatching(statementSchema);
@@ -165,13 +186,37 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 						}
 						
 						for (ISqlElement column : result.getMissingColumns()) {
-							int lineNumber = ParseUtils.getLineNumber(file, ((ASTNode)column.getSourceElement()).getStartPosition());
-							addMarker(JPA_ENTITY_MARKER_TYPE, file, "Missing Column: " + column.getSqlElementId(), lineNumber, IMarker.SEVERITY_ERROR);
+							addColumnMarker(file, column, String.format("Missing Column: %s", column.getSqlElementId()));
+						}
+
+						for (ISqlElement column : result.getMissingButReachableColumns().keySet()) {
+							List<ISqlElement> pathElements = result.getMissingButReachableColumns().get(column).get(0);
+							StringBuilder message = new StringBuilder();
+
+							message.append("Missing but reachable Column ");
+							message.append(column.getSqlElementId());
+							setReachablePathString(message, pathElements);
+
+							addColumnMarker(file, column, message.toString());
 						}
 					}
 				}
 			}
 		}
+	}
+
+	private IDatabaseIdentifierFormatter getFormatter() {
+		switch(databaseFile.databaseType) {
+		case H2:
+			return new UpperCaseFormatter();
+		default:
+			return new NullFormatter();
+		}
+	}
+
+	private void addColumnMarker(IFile file, ISqlElement column, String message) {
+		int lineNumber = ParseUtils.getLineNumber(file, ((ASTNode)column.getSourceElement()).getStartPosition());
+		addMarker(JPA_ENTITY_MARKER_TYPE, file, message, lineNumber, IMarker.SEVERITY_ERROR);
 	}
 
 	private boolean resultsAvaiable(
@@ -190,7 +235,7 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 		ISqlSchemaFrontend frontend = new SqlStatementFrontend(entry.getKey(), null);
 		
 		try {
-			Graph<ISqlElement, DefaultEdge> statementSchema = frontend.createSqlSchema();
+			DirectedGraph<IStructureElement, DefaultEdge> statementSchema = frontend.createSqlSchema();
 		
 			if (statementSchema != null) {
 				SqlStatementExpectationValidationResult result = statementValidator.computeGraphMatching(statementSchema);
@@ -209,6 +254,8 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 					addMarker(SQL_STATEMENT_MARKER_TYPE, file, message, entry.getValue(), IMarker.SEVERITY_ERROR);
 				}
 			}
+		} catch (TokenMgrError ex) {
+
 		} catch (Exception ex) {
 			addMarker(SQL_STATEMENT_MARKER_TYPE, file, ex.getMessage(), entry.getValue(), IMarker.SEVERITY_ERROR);
 		}
@@ -279,15 +326,16 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 
 	private SqlStatementExpectationValidator statementValidator;
 	private long modificationStamp;
-	
+	private DatabaseFile databaseFile;
+
 	protected void fullBuild(final IProgressMonitor monitor)
 			throws CoreException {
 		try {
-			IFile sqliteDatabase = findSqliteDatabaseFile();
+			databaseFile = findDatabaseFile();
 			
 			statementValidator = null;
 			
-			initializeSqlSchemaComparison(sqliteDatabase);
+			initializeSqlSchemaComparison(databaseFile);
 			
 			checkDatabaseAccess();
 		} catch (CoreException e) {
@@ -296,43 +344,87 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 
 	protected void incrementalBuild(IResourceDelta delta,
 			IProgressMonitor monitor) throws CoreException {
-		IFile sqliteDatabase = findSqliteDatabaseFile();
+		DatabaseFile databaseFile = findDatabaseFile();
 		
-		if (statementValidator == null || databaseChanged(sqliteDatabase)) {
-			initializeSqlSchemaComparison(sqliteDatabase);
+		if (statementValidator == null || databaseChanged(databaseFile)) {
+			initializeSqlSchemaComparison(databaseFile);
 		}
 		
 		checkDatabaseAccess(delta);
 	}
 
-	private boolean databaseChanged(IFile file) throws CoreException {
-		file.refreshLocal(IResource.DEPTH_ZERO, null);
-		
-		return file.getModificationStamp() != modificationStamp;
+	private DatabaseFile findDatabaseFile() throws CoreException {
+		DatabaseFile databaseFile = findSqliteDatabaseFile();
+
+		if (databaseFile == null) {
+			databaseFile = findH2DatabaseFile();
+		}
+
+		return databaseFile;
 	}
 
-	private IFile findSqliteDatabaseFile() throws CoreException {
-		SQLiteDatabaseFinder visitor = new SQLiteDatabaseFinder();
+	private boolean databaseChanged(DatabaseFile databaseFile) throws CoreException {
+		databaseFile.databaseFile.refreshLocal(IResource.DEPTH_ZERO, null);
+		
+		return databaseFile.databaseFile.getModificationStamp() != modificationStamp;
+	}
+
+	private DatabaseFile findSqliteDatabaseFile() throws CoreException {
+		return findDatabaseFile(DatabaseType.SQLITE);
+	}
+
+	private DatabaseFile findH2DatabaseFile() throws CoreException {
+		return findDatabaseFile(DatabaseType.H2);
+	}
+
+	private DatabaseFile findDatabaseFile(DatabaseType databaseType) throws CoreException {
+		DatabaseFile database = null;
+		FileByEndingFinder visitor = new FileByEndingFinder(getFileEnding(databaseType));
 		
 		getProject().accept(visitor);
+
+		if (visitor.fileFound()) {
+			database = new DatabaseFile(visitor.file, databaseType);
+		}
 		
-		return visitor.sqliteDatabase;
+		return database;
 	}
 
-	private void initializeSqlSchemaComparison(IFile file) {
-		Graph<ISqlElement, DefaultEdge> schema = null;
+	private String getFileEnding(DatabaseType databaseType) {
+		switch (databaseType) {
+		case SQLITE:
+			return "sqlite";
+		case H2:
+			return "db";
+		default:
+			throw new IllegalArgumentException(databaseType.toString()
+					+ "is not supported!");
+		}
+	}
+
+	private void initializeSqlSchemaComparison(DatabaseFile databaseFile) {
+		DirectedGraph<IStructureElement, DefaultEdge> schema = null;
 		
-		if (file != null) {
-			schema = generateSqlDatabaseSchema(file);
-			modificationStamp = file.getModificationStamp();
+		if (databaseFile != null) {
+			schema = generateSqlDatabaseSchema(databaseFile);
+			modificationStamp = databaseFile.databaseFile.getModificationStamp();
 			
 			statementValidator = new SqlStatementExpectationValidator(schema);
 		}
 	}
 
-	private Graph<ISqlElement, DefaultEdge> generateSqlDatabaseSchema(IFile sqliteDatabase) {
-		String sqliteDatabasePath = sqliteDatabase.getLocation().toString();
-		SqliteSchemaFrontend frontend = new SqliteSchemaFrontend(sqliteDatabasePath);
+	private DirectedGraph<IStructureElement, DefaultEdge> generateSqlDatabaseSchema(DatabaseFile databaseFile) {
+		String databasePath = databaseFile.databaseFile.getLocation().toString();
+		ISqlSchemaFrontend frontend = null;
+
+		switch (databaseFile.databaseType) {
+		case SQLITE:
+			frontend = new SqliteSchemaFrontend(databasePath);
+			break;
+		case H2:
+			frontend = new H2SchemaFrontend(databasePath.replaceAll("\\.mv\\.db$", ""));
+			break;
+		}
 		
 		return frontend.createSqlSchema();
 	}

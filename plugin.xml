@@ -15,7 +15,7 @@
    </extension>
    <extension
          id="sqlSchemaComparerNature"
-         name="Sq lSchema Comparer Nature"
+         name="Sql Schema Comparer Nature"
          point="org.eclipse.core.resources.natures">
       <runtime>
          <run
@@ -27,20 +27,26 @@
       </builder>
    </extension>
    <extension
-         point="org.eclipse.ui.popupMenus">
-      <objectContribution
-            adaptable="true"
-            objectClass="org.eclipse.core.resources.IProject"
-            nameFilter="*"
-            id="org.iti.sqlSchemaComparerPlugin.contribution1">
-         <action
-               label="Add/Remove SQL Schema Comparer"
-               class="org.iti.sqlschemacomparerplugin.builder.ToggleNatureAction"
-               menubarPath="additions"
-               enablesFor="+"
-               id="org.iti.sqlSchemaComparerPlugin.addRemoveNatureAction">
-         </action>
-      </objectContribution>
+         point="org.eclipse.ui.menus">
+      <menuContribution
+            allPopups="false"
+            locationURI="popup:org.eclipse.ui.popup.any?after=additions">
+         <command
+               commandId="org.iti.sqlschemacomparerplugin.toggleNature"
+               label="SQL Schema Comparer"
+               style="toggle"
+               tooltip="(De-)Activate SQL Schema Comparer">
+               <visibleWhen checkEnabled="false">
+         			<with variable="selection">
+         				<iterate ifEmpty="false">
+         					<adapt type="org.eclipse.core.resources.IProject">
+         						<test property="org.eclipse.core.resources.projectNature" value="org.eclipse.jdt.core.javanature"/>
+         					</adapt>
+         				</iterate>
+         			</with>         			         			
+         		</visibleWhen>
+         </command>
+      </menuContribution>
    </extension>
    <extension
          id="sqlStatementProblem"
@@ -63,6 +69,18 @@
       <persistent
             value="true">
       </persistent>
+   </extension>
+   <extension
+         point="org.eclipse.ui.commands">
+      <command
+            defaultHandler="org.iti.sqlschemacomparerplugin.ToggleNatureHandler"
+            id="org.iti.sqlschemacomparerplugin.toggleNature"
+            name="ToggleNature">
+            <state
+         		class="org.eclipse.ui.handlers.RegistryToggleState"
+         		id="org.iti.sqlschemacomparerplugin.toggleNature.toggleState">
+   			</state>
+      </command>
    </extension>
 
 </plugin>
