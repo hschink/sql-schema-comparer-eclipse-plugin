@@ -54,7 +54,7 @@ import org.iti.structureGraph.nodes.IStructureElement;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
 
-import zql.classes.org.gibello.zql.TokenMgrError;
+import org.gibello.zql.TokenMgrError;
 
 public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 

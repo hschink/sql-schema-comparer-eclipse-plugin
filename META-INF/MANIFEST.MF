@@ -18,5 +18,5 @@ Bundle-ClassPath: .,
  libs/sqlite-jdbc-3.7.15-SNAPSHOT.jar,
  libs/h2-1.4.181.jar,
  libs/sql-schema-comparer.jar,
- libs/zql/classes/,
- libs/javaparser-1.0.9.jar
+ libs/javaparser-1.0.9.jar,
+ classes/
