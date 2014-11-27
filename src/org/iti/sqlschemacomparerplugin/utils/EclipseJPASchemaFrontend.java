@@ -48,6 +48,7 @@ import org.jgrapht.graph.SimpleDirectedGraph;
 public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 
 	private final static String VERSION = "Version";
+	private final static String JOIN_COLUMN = "JoinColumn";
 
 	private IFile file = null;
 	private IDatabaseIdentifierFormatter formatter = new NullFormatter();
@@ -361,8 +362,10 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 
 		if (hasAnnotationOfType(VERSION, n.modifiers())) {
 			value = "Versions";
-		} else {
+		} else if (hasAnnotationOfType(COLUMN, n.modifiers())) {
 			value = getAnnotationMemberValue(n.modifiers(), COLUMN, TABLE_NAME);
+		} else if (hasAnnotationOfType(JOIN_COLUMN, n.modifiers())) {
+			value = getAnnotationMemberValue(n.modifiers(), JOIN_COLUMN, TABLE_NAME);
 		}
 		
 		return (value == null) ? n.getName().toString().substring(GETTER_PREFIX.length(), n.getName().toString().length()).toLowerCase()
