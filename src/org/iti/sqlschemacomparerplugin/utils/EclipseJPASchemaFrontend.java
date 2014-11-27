@@ -295,11 +295,14 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 			String columnId = lastVisitedClass.getSqlElementId() + "." + formatter.formatColumn(getColumnName(n));
 			String foreignTableId = classToTable.get(n.getName().toString());
 			ISqlElement foreignKeyTable = SqlElementFactory.getMatchingSqlElement(SqlElementType.Table, foreignTableId, schema.vertexSet());
-			ISqlElement referencingColumn = SqlElementFactory.getMatchingSqlColumns(columnId, schema.vertexSet(), true).get(0);
-			ISqlElement foreignKeyColumn = SqlElementFactory.getPrimaryKey(foreignKeyTable, schema);
-			
-			if (referencingColumn != null && foreignKeyColumn != null) {
-				schema.addEdge(referencingColumn, foreignKeyColumn, new ForeignKeyRelationEdge(referencingColumn, foreignKeyTable, foreignKeyColumn));
+
+			if (foreignKeyTable != null) {
+				ISqlElement referencingColumn = SqlElementFactory.getMatchingSqlColumns(columnId, schema.vertexSet(), true).get(0);
+				ISqlElement foreignKeyColumn = SqlElementFactory.getPrimaryKey(foreignKeyTable, schema);
+
+				if (referencingColumn != null && foreignKeyColumn != null) {
+					schema.addEdge(referencingColumn, foreignKeyColumn, new ForeignKeyRelationEdge(referencingColumn, foreignKeyTable, foreignKeyColumn));
+				}
 			}
 		}
 		
