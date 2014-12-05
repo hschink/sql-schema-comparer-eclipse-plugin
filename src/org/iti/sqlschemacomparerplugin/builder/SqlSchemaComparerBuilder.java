@@ -344,7 +344,7 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 
 	protected void incrementalBuild(IResourceDelta delta,
 			IProgressMonitor monitor) throws CoreException {
-		DatabaseFile databaseFile = findDatabaseFile();
+		databaseFile = findDatabaseFile();
 		
 		if (statementValidator == null || databaseChanged(databaseFile)) {
 			initializeSqlSchemaComparison(databaseFile);
