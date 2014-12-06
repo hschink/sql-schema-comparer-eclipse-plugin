@@ -31,21 +31,26 @@
       <menuContribution
             allPopups="false"
             locationURI="popup:org.eclipse.ui.popup.any?after=additions">
-         <command
-               commandId="org.iti.sqlschemacomparerplugin.toggleNature"
-               label="SQL Schema Comparer"
-               style="toggle"
-               tooltip="(De-)Activate SQL Schema Comparer">
-               <visibleWhen checkEnabled="false">
-         			<with variable="selection">
-         				<iterate ifEmpty="false">
-         					<adapt type="org.eclipse.core.resources.IProject">
-         						<test property="org.eclipse.core.resources.projectNature" value="org.eclipse.jdt.core.javanature"/>
-         					</adapt>
-         				</iterate>
-         			</with>         			         			
-         		</visibleWhen>
-         </command>
+         <dynamic
+               class="org.iti.sqlschemacomparerplugin.PluginActivationContributionItem"
+               id="org.iti.sqlschemacomparerplugin.pluginActivationContributionItem">
+            <visibleWhen
+                  checkEnabled="false">
+               <with
+                     variable="selection">
+                  <iterate
+                        ifEmpty="false">
+                     <adapt
+                           type="org.eclipse.core.resources.IProject">
+                        <test
+                              property="org.eclipse.core.resources.projectNature"
+                              value="org.eclipse.jdt.core.javanature">
+                        </test>
+                     </adapt>
+                  </iterate>
+               </with>
+            </visibleWhen>
+         </dynamic>
       </menuContribution>
    </extension>
    <extension
