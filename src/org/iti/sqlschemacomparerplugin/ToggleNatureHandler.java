@@ -12,7 +12,6 @@
 
 package org.iti.sqlschemacomparerplugin;
 
-import java.util.Iterator;
 import java.util.Map;
 
 import org.eclipse.core.commands.AbstractHandler;
@@ -21,11 +20,7 @@ import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IProjectDescription;
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.jface.viewers.ISelection;
-import org.eclipse.jface.viewers.IStructuredSelection;
-import org.eclipse.ui.IWorkbenchWindow;
-import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.commands.IElementUpdater;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.menus.UIElement;
@@ -36,35 +31,11 @@ public class ToggleNatureHandler extends AbstractHandler implements IElementUpda
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		ISelection currentSelection = HandlerUtil.getCurrentSelection(event);
-		IProject selectedProject = getSelectedProject(currentSelection);
+		IProject selectedProject = PluginUtils.getSelectedProject(currentSelection);
 		
 		toggleNature(selectedProject);
 		
 		return null;
-	}
-
-	private IProject getSelectedProject(ISelection currentSelection) {
-		IProject project = null;
-		
-		if (currentSelection instanceof IStructuredSelection) {
-			for (Iterator<?> it = ((IStructuredSelection) currentSelection).iterator(); it
-					.hasNext();) {
-				Object element = it.next();
-				
-				if (element instanceof IProject) {
-					project = (IProject) element;
-				} else if (element instanceof IAdaptable) {
-					project = (IProject) ((IAdaptable) element)
-							.getAdapter(IProject.class);
-				}
-				
-				if (project != null) {
-					break;
-				}
-			}
-		}
-		
-		return project;
 	}
 
 	private void toggleNature(IProject project) {
@@ -72,7 +43,7 @@ public class ToggleNatureHandler extends AbstractHandler implements IElementUpda
 			IProjectDescription description = project.getDescription();
 			String[] natures = description.getNatureIds();
 			String[] newNatures = null;
-			int natureId = getNatureId(project);
+			int natureId = PluginUtils.getNatureId(project);
 			
 			if (natureId >= 0) {
 				// Remove the nature
@@ -91,37 +62,12 @@ public class ToggleNatureHandler extends AbstractHandler implements IElementUpda
 				project.setDescription(description, null);
 			}
 		} catch (CoreException e) {
+			System.err.println(e.getStackTrace());
 		}
 	}
 	
-	private int getNatureId(IProject project) {
-		try {
-			IProjectDescription description = project.getDescription();
-			String[] natures = description.getNatureIds();
-			
-			for (int i = 0; i < natures.length; ++i) {
-				if (SqlSchemaComparerNature.NATURE_ID.equals(natures[i])) {
-					return i;
-				}
-			}
-		} catch (CoreException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		return -1;
-	}
-	
-	private boolean isNatureActive(IProject project) {
-		return getNatureId(project) >= 0;
-	}
-
 	@Override
 	public void updateElement(UIElement element, @SuppressWarnings("rawtypes") Map parameters) {
-		IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
-		ISelection currentSelection = window.getSelectionService().getSelection("org.eclipse.jdt.ui.PackageExplorer");
-		IProject selectedProject = getSelectedProject(currentSelection);
-		
-		element.setChecked(isNatureActive(selectedProject));
+		element.setChecked(PluginUtils.isNatureActive(PluginUtils.getSelectedProject()));
 	}
 }
