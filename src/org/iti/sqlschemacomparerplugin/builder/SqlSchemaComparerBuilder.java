@@ -34,6 +34,8 @@ import org.eclipse.core.resources.IResourceVisitor;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.iti.sqlSchemaComparison.SqlStatementExpectationValidationResult;
 import org.iti.sqlSchemaComparison.SqlStatementExpectationValidator;
@@ -430,6 +432,13 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 	}
 
 	private void checkDatabaseAccess(IResourceDelta delta) throws CoreException {
+		if (databaseFile == null) {
+			Status status = new Status(IStatus.ERROR,
+					BUILDER_ID,
+					"The project doesn't contain a database file in the project root.");
+			throw new CoreException(status);
+		}
+
 		if (delta == null) {
 		  getProject().accept(new SampleResourceVisitor());
 		} else {
