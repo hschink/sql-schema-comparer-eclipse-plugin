@@ -337,7 +337,7 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 			
 			initializeSqlSchemaComparison(databaseFile);
 			
-			checkDatabaseAccess();
+			checkDatabaseAccess(null);
 		} catch (CoreException e) {
 		}
 	}
@@ -429,11 +429,11 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 		return frontend.createSqlSchema();
 	}
 
-	private void checkDatabaseAccess() throws CoreException {
-		getProject().accept(new SampleResourceVisitor());
-	}
-
 	private void checkDatabaseAccess(IResourceDelta delta) throws CoreException {
-		delta.accept(new SampleDeltaVisitor());
+		if (delta == null) {
+		  getProject().accept(new SampleResourceVisitor());
+		} else {
+		  delta.accept(new SampleDeltaVisitor());
+		}
 	}
 }
