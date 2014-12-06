@@ -60,6 +60,8 @@ import org.gibello.zql.TokenMgrError;
 
 public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 
+	private static final String TASK_NAME = "SQL schema comparison";
+
 	class SampleDeltaVisitor implements IResourceDeltaVisitor {
 		/*
 		 * (non-Javadoc)
@@ -326,12 +328,17 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 		message.append(")");
 	}
 
+	private IProgressMonitor monitor;
 	private SqlStatementExpectationValidator statementValidator;
 	private long modificationStamp;
 	private DatabaseFile databaseFile;
 
 	protected void fullBuild(final IProgressMonitor monitor)
 			throws CoreException {
+		this.monitor = monitor;
+
+		notifyAboutBuildStart();
+
 		try {
 			databaseFile = findDatabaseFile();
 			
@@ -340,12 +347,17 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 			initializeValidator();
 			
 			checkDatabaseAccess(null);
-		} catch (CoreException e) {
+		} finally {
+			monitor.done();
 		}
 	}
 
 	protected void incrementalBuild(IResourceDelta delta,
 			IProgressMonitor monitor) throws CoreException {
+		this.monitor = monitor;
+
+		notifyAboutBuildStart();
+
 		try {
 			databaseFile = findDatabaseFile();
 
@@ -353,25 +365,40 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 
 			checkDatabaseAccess(delta);
 		} finally {
+			monitor.done();
 		}
-		
-		checkDatabaseAccess(delta);
+	}
+
+	private void notifyAboutBuildStart() {
+		monitor.beginTask(TASK_NAME, 3);
 	}
 
 	private DatabaseFile findDatabaseFile() throws CoreException {
-		DatabaseFile databaseFile = findSqliteDatabaseFile();
+		DatabaseFile databaseFile = null;
+
+		monitor.subTask("Find SQLite database");
+
+		databaseFile = findSqliteDatabaseFile();
 
 		if (databaseFile == null) {
+			monitor.subTask("Find H2 database");
+
 			databaseFile = findH2DatabaseFile();
 		}
+
+		monitor.worked(1);
 
 		return databaseFile;
 	}
 
 	private void initializeValidator() throws CoreException {
 		if (statementValidator == null || databaseChanged(databaseFile)) {
+			monitor.subTask("Initialize validator");
+
 			initializeSqlSchemaComparison(databaseFile);
 		}
+
+		monitor.worked(1);
 	}
 
 	private boolean databaseChanged(DatabaseFile databaseFile) throws CoreException {
@@ -448,10 +475,14 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 			throw new CoreException(status);
 		}
 
+		monitor.subTask("Check against SQL schema");
+
 		if (delta == null) {
 		  getProject().accept(new SampleResourceVisitor());
 		} else {
 		  delta.accept(new SampleDeltaVisitor());
 		}
+
+		monitor.worked(1);
 	}
 }
