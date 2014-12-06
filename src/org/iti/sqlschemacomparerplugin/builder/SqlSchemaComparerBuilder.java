@@ -337,7 +337,7 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 			
 			statementValidator = null;
 			
-			initializeSqlSchemaComparison(databaseFile);
+			initializeValidator();
 			
 			checkDatabaseAccess(null);
 		} catch (CoreException e) {
@@ -346,10 +346,13 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 
 	protected void incrementalBuild(IResourceDelta delta,
 			IProgressMonitor monitor) throws CoreException {
-		databaseFile = findDatabaseFile();
-		
-		if (statementValidator == null || databaseChanged(databaseFile)) {
-			initializeSqlSchemaComparison(databaseFile);
+		try {
+			databaseFile = findDatabaseFile();
+
+			initializeValidator();
+
+			checkDatabaseAccess(delta);
+		} finally {
 		}
 		
 		checkDatabaseAccess(delta);
@@ -363,6 +366,12 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 		}
 
 		return databaseFile;
+	}
+
+	private void initializeValidator() throws CoreException {
+		if (statementValidator == null || databaseChanged(databaseFile)) {
+			initializeSqlSchemaComparison(databaseFile);
+		}
 	}
 
 	private boolean databaseChanged(DatabaseFile databaseFile) throws CoreException {
