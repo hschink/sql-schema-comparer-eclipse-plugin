@@ -154,7 +154,9 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 	}
 	
 	void checkSqlStatements(IResource resource) {
-		if (resource instanceof IFile && resource.getName().endsWith(".java")) {
+		if (resource instanceof IFile
+				&& resource.getName().endsWith(".java")
+				&& !ignoredFiles.contains(resource.getName())) {
 			IFile file = (IFile) resource;
 			
 			if (statementValidator != null) {
@@ -170,7 +172,9 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 	}
 
 	private void checkEntityDefinition(IResource resource) {
-		if (resource instanceof IFile && resource.getName().endsWith(".java")) {
+		if (resource instanceof IFile
+				&& resource.getName().endsWith(".java")
+				&& !ignoredFiles.contains(resource.getName())) {
 			IFile file = (IFile) resource;
 			
 			if (statementValidator != null) {
@@ -331,6 +335,7 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 	private SqlStatementExpectationValidator statementValidator;
 	private long modificationStamp;
 	private DatabaseFile databaseFile;
+	private List<String> ignoredFiles;
 
 	protected void fullBuild(final IProgressMonitor monitor)
 			throws CoreException {
@@ -340,6 +345,7 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 
 		try {
 			databaseFile = findDatabaseFile();
+			ignoredFiles = ParseUtils.getIgnoredFileNames(getProject());
 			
 			statementValidator = null;
 			
@@ -359,6 +365,7 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 
 		try {
 			databaseFile = findDatabaseFile();
+			ignoredFiles = ParseUtils.getIgnoredFileNames(getProject());
 
 			initializeValidator();
 

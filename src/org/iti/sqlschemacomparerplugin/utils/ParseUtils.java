@@ -11,8 +11,12 @@
 
 package org.iti.sqlschemacomparerplugin.utils;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -77,22 +81,72 @@ public class ParseUtils {
 	}
 
 	public static List<File> findFilesByEnding(IResource resource, final String suffix) {
+		FilenameFilter filter = new FilenameFilter() {
+
+			@Override
+			public boolean accept(File dir, String name) {
+				return name.endsWith(suffix);
+			}
+		};
+
+		return findFiles(resource, filter);
+	}
+
+	public static List<String> getIgnoredFileNames(IResource resource) {
+		List<File> files = findFilesByName(resource, ".ssc.ignore");
+		List<String> ignored = new ArrayList<>();
+		
+		if (!files.isEmpty()) {
+			BufferedReader reader = null;
+
+			try {
+				reader = new BufferedReader(new FileReader(files.get(0)));
+				
+				while (reader.ready()) {
+					ignored.add(reader.readLine().trim());
+				}
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} finally {
+				try {
+					reader.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		return ignored;
+	}
+
+	public static List<File> findFilesByName(IResource resource, final String fileName) {
+		FilenameFilter filter = new FilenameFilter() {
+
+			@Override
+			public boolean accept(File dir, String name) {
+				return name.equals(fileName);
+			}
+		};
+
+		return findFiles(resource, filter);
+	}
+
+	private static List<File> findFiles(IResource resource,
+			FilenameFilter filter) {
 		List<File> files = new ArrayList<>();
 		File root = resource.getLocation().toFile();
 
 		if (root.isDirectory()) {
-			File[] fileList = root.listFiles(new FilenameFilter() {
-
-				@Override
-				public boolean accept(File dir, String name) {
-					return name.endsWith(suffix);
-				}
-			});
+			File[] fileList = root.listFiles(filter);
 
 			files = Arrays.asList(fileList);
 		}
 
 		return files;
 	}
-
 }
