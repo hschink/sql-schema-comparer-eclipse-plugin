@@ -26,6 +26,7 @@ import org.eclipse.jdt.core.dom.IExtendedModifier;
 import org.eclipse.jdt.core.dom.MemberValuePair;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.NormalAnnotation;
+import org.eclipse.jdt.core.dom.PrimitiveType;
 import org.eclipse.jdt.core.dom.SimpleType;
 import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
@@ -47,6 +48,7 @@ import org.jgrapht.graph.SimpleDirectedGraph;
 
 public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 
+	private final static String OVERRIDE = "Override";
 	private final static String VERSION = "Version";
 	private final static String JOIN_COLUMN = "JoinColumn";
 
@@ -61,12 +63,27 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 		private final static String TRANSIENT = "Transient";
 		private final static String JOIN_TABLE = "JoinTable";
 		private final static String ID = "Id";
+		private static final String SETTER_PREFIX = "set";
+		
+		private static final List<String> SUPPORTED_RETURN_TYPES = new ArrayList<String>() {
+			/**
+			 * 
+			 */
+			private static final long serialVersionUID = 1L;
+			
+			{
+					add("String");
+					add("Date");
+			}
+		};
 		
 		private DirectedGraph<IStructureElement, DefaultEdge> schema;
 
 		private ISqlElement lastVisitedClass;
 
 		private IDatabaseIdentifierFormatter formatter;
+		
+		private Map<String, MethodDeclaration> possibleColumnMethods = new HashMap<>();
 
 		public JPAAnnotationVisitor(DirectedGraph<IStructureElement, DefaultEdge> schema,
 				IDatabaseIdentifierFormatter formatter) {
@@ -100,18 +117,62 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 
 		@Override
 		public boolean visit(MethodDeclaration node) {
-			List<?> modifiers = node.modifiers();
+			if (node.getName().toString().equals("setChangePasswordDate")) {
+				System.out.println();
+			}
 			if (isGetter(node)
-					&& !hasAnnotationOfType(TRANSIENT, modifiers)
-					&& !hasAnnotationOfType(JOIN_TABLE, modifiers)) {
-				processMethod(node);
+					&& isSupportedGetterMethod(node)
+					&& isColumnRepresentingMethod(node)) {
+				String setterName = node.getName().toString().substring(GETTER_PREFIX.length());
+				
+				possibleColumnMethods.put("set" + setterName, node);
+			} else if (isSetter(node) && possibleColumnMethods.get(node.getName().toString()) != null) {
+				processMethod(possibleColumnMethods.remove(node.getName().toString()));
+			}
+
+			return false;
+		}
+
+		private boolean isSupportedGetterMethod(MethodDeclaration node) {
+			List<?> modifiers = node.modifiers();
+
+			return representsSingleValue(node)
+					&& node.parameters().isEmpty()
+					&& !hasAnnotationOfType(JOIN_TABLE, modifiers)
+					&& !hasAnnotationOfType(OVERRIDE, modifiers)
+					&& returnsSupportedType(node);
+		}
+
+		private boolean returnsSupportedType(MethodDeclaration node) {
+			Type returnType = node.getReturnType2();
+			
+			if (returnType instanceof PrimitiveType) {
+				return true;
+			} else if (returnType instanceof SimpleType) {
+				SimpleType simpleType = (SimpleType)returnType;
+				
+				return SUPPORTED_RETURN_TYPES.contains(simpleType.getName().toString());
 			}
 			
-			return super.visit(node);
+			return false;
+		}
+
+		private boolean isColumnRepresentingMethod(MethodDeclaration node) {
+			List<?> modifiers = node.modifiers();
+
+			return !hasAnnotationOfType(TRANSIENT, modifiers);
 		}
 
 		private boolean isGetter(MethodDeclaration n) {
 			return n.getName().toString().startsWith(GETTER_PREFIX);
+		}
+
+		private boolean isSetter(MethodDeclaration n) {
+			return n.getName().toString().startsWith(SETTER_PREFIX);
+		}
+
+		private boolean representsSingleValue(MethodDeclaration n) {
+			return !n.getName().toString().endsWith("s");
 		}
 
 		private void processMethod(MethodDeclaration n) {
