@@ -71,38 +71,5 @@ public class ParseUtils {
 		parser.setResolveBindings(true);
 		return parser.createAST(null);
 	}
-	
-//	private static List<ICompilationUnit> getCompilationUnitsOfNature(IProject project,
-//			String natureName) {
-//		List<ICompilationUnit> compilationUnits = new ArrayList<>();
-//		
-//		try {
-//			compilationUnits= tryGetCompilationUnitsOfNature(project, natureName);
-//		} catch (CoreException e) {
-//			e.printStackTrace();
-//		}
-//		
-//		return compilationUnits;
-//	}
-//
-//	private static List<ICompilationUnit> tryGetCompilationUnitsOfNature(IProject project,
-//			String natureName)
-//			throws CoreException {
-//		
-//		List<ICompilationUnit> compilationUnits = new ArrayList<>();
-//		
-//		if (project.hasNature(natureName)) {
-//			IJavaProject javaProject = JavaCore.create(project);
-//			
-//			for (IPackageFragment packageFragment : javaProject.getPackageFragments()) {
-//				if (packageFragment.getKind() == IPackageFragmentRoot.K_SOURCE)
-//					for (ICompilationUnit unit : packageFragment.getCompilationUnits()) {
-//						compilationUnits.add(unit);
-//					}
-//			}
-//		}
-//		
-//		return compilationUnits;
-//	}
 
 }
