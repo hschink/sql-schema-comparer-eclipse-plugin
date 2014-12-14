@@ -59,24 +59,24 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 
 		public Map<String, String> classToTable = new HashMap<>();
 		public Map<String, TypeDeclaration> classDeclarations = new HashMap<>();
-		
+
 		private final static String TRANSIENT = "Transient";
 		private final static String JOIN_TABLE = "JoinTable";
 		private final static String ID = "Id";
 		private static final String SETTER_PREFIX = "set";
-		
+
 		private static final List<String> SUPPORTED_RETURN_TYPES = new ArrayList<String>() {
 			/**
-			 * 
+			 *
 			 */
 			private static final long serialVersionUID = 1L;
-			
+
 			{
 					add("String");
 					add("Date");
 			}
 		};
-		
+
 		private DirectedGraph<IStructureElement, DefaultEdge> schema;
 
 		private ISqlElement lastVisitedClass;
@@ -145,15 +145,15 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 
 		private boolean returnsSupportedType(MethodDeclaration node) {
 			Type returnType = node.getReturnType2();
-			
+
 			if (returnType instanceof PrimitiveType) {
 				return true;
 			} else if (returnType instanceof SimpleType) {
 				SimpleType simpleType = (SimpleType)returnType;
-				
+
 				return SUPPORTED_RETURN_TYPES.contains(simpleType.getName().toString());
 			}
-			
+
 			return false;
 		}
 

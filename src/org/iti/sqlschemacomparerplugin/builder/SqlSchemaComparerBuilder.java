@@ -19,6 +19,7 @@
 
 package org.iti.sqlschemacomparerplugin.builder;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,7 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.jdt.core.dom.ASTNode;
+import org.gibello.zql.TokenMgrError;
 import org.iti.sqlSchemaComparison.SqlStatementExpectationValidationResult;
 import org.iti.sqlSchemaComparison.SqlStatementExpectationValidator;
 import org.iti.sqlSchemaComparison.frontends.ISqlSchemaFrontend;
@@ -51,12 +53,9 @@ import org.iti.sqlschemacomparerplugin.utils.ParseUtils;
 import org.iti.sqlschemacomparerplugin.utils.databaseformatter.IDatabaseIdentifierFormatter;
 import org.iti.sqlschemacomparerplugin.utils.databaseformatter.NullFormatter;
 import org.iti.sqlschemacomparerplugin.utils.databaseformatter.UpperCaseFormatter;
-import org.iti.sqlschemacomparerplugin.visitors.FileByEndingFinder;
 import org.iti.structureGraph.nodes.IStructureElement;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
-
-import org.gibello.zql.TokenMgrError;
 
 public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 
@@ -104,10 +103,10 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 	}
 
 	private class DatabaseFile {
-		public IFile databaseFile;
+		public File databaseFile;
 		public DatabaseType databaseType;
 
-		public DatabaseFile(IFile databaseFile, DatabaseType databaseType) {
+		public DatabaseFile(File databaseFile, DatabaseType databaseType) {
 			this.databaseFile = databaseFile;
 			this.databaseType = databaseType;
 		}
@@ -402,9 +401,7 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 	}
 
 	private boolean databaseChanged(DatabaseFile databaseFile) throws CoreException {
-		databaseFile.databaseFile.refreshLocal(IResource.DEPTH_ZERO, null);
-		
-		return databaseFile.databaseFile.getModificationStamp() != modificationStamp;
+		return databaseFile.databaseFile.lastModified() != modificationStamp;
 	}
 
 	private DatabaseFile findSqliteDatabaseFile() throws CoreException {
@@ -417,12 +414,10 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 
 	private DatabaseFile findDatabaseFile(DatabaseType databaseType) throws CoreException {
 		DatabaseFile database = null;
-		FileByEndingFinder visitor = new FileByEndingFinder(getFileEnding(databaseType));
-		
-		getProject().accept(visitor);
+		List<File> files = ParseUtils.findFilesByEnding(getProject(), getFileEnding(databaseType));
 
-		if (visitor.fileFound()) {
-			database = new DatabaseFile(visitor.file, databaseType);
+		if (!files.isEmpty()) {
+			database = new DatabaseFile(files.get(0), databaseType);
 		}
 		
 		return database;
@@ -445,14 +440,14 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 		
 		if (databaseFile != null) {
 			schema = generateSqlDatabaseSchema(databaseFile);
-			modificationStamp = databaseFile.databaseFile.getModificationStamp();
+			modificationStamp = databaseFile.databaseFile.lastModified();
 			
 			statementValidator = new SqlStatementExpectationValidator(schema);
 		}
 	}
 
 	private DirectedGraph<IStructureElement, DefaultEdge> generateSqlDatabaseSchema(DatabaseFile databaseFile) {
-		String databasePath = databaseFile.databaseFile.getLocation().toString();
+		String databasePath = databaseFile.databaseFile.getAbsolutePath();
 		ISqlSchemaFrontend frontend = null;
 
 		switch (databaseFile.databaseType) {

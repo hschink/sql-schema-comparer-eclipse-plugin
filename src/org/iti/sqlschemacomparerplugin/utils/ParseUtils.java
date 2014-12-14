@@ -11,12 +11,16 @@
 
 package org.iti.sqlschemacomparerplugin.utils;
 
+import java.io.File;
+import java.io.FilenameFilter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.dom.AST;
@@ -70,6 +74,25 @@ public class ParseUtils {
 		parser.setSource(unit);
 		parser.setResolveBindings(true);
 		return parser.createAST(null);
+	}
+
+	public static List<File> findFilesByEnding(IResource resource, final String suffix) {
+		List<File> files = new ArrayList<>();
+		File root = resource.getLocation().toFile();
+
+		if (root.isDirectory()) {
+			File[] fileList = root.listFiles(new FilenameFilter() {
+
+				@Override
+				public boolean accept(File dir, String name) {
+					return name.endsWith(suffix);
+				}
+			});
+
+			files = Arrays.asList(fileList);
+		}
+
+		return files;
 	}
 
 }
