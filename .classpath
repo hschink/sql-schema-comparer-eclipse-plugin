@@ -3,13 +3,13 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
 	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="lib" path="/home/hagen/sources/hagen/sql-schema-comparer-eclipse-plugin/libs/commons-lang3-3.3.2.jar"/>
-	<classpathentry kind="lib" path="/home/hagen/sources/hagen/sql-schema-comparer-eclipse-plugin/libs/h2-1.4.181.jar"/>
-	<classpathentry kind="lib" path="/home/hagen/sources/hagen/sql-schema-comparer-eclipse-plugin/libs/javaparser-1.0.9.jar"/>
-	<classpathentry kind="lib" path="/home/hagen/sources/hagen/sql-schema-comparer-eclipse-plugin/libs/jgrapht-0.8.3.jar"/>
-	<classpathentry kind="lib" path="/home/hagen/sources/hagen/sql-schema-comparer-eclipse-plugin/libs/sqlite-jdbc-3.7.15-SNAPSHOT.jar"/>
-	<classpathentry kind="lib" path="/home/hagen/sources/hagen/sql-schema-comparer-eclipse-plugin/libs/structureGraph-0.0.1.jar"/>
-	<classpathentry kind="lib" path="/home/hagen/sources/hagen/sql-schema-comparer-eclipse-plugin/classes"/>
-	<classpathentry kind="lib" path="/home/hagen/sources/hagen/sql-schema-comparer-eclipse-plugin/libs/sqlSchemaComparer-0.0.1.jar"/>
+	<classpathentry kind="lib" path="libs/commons-lang3-3.3.2.jar"/>
+	<classpathentry kind="lib" path="libs/h2-1.4.181.jar"/>
+	<classpathentry kind="lib" path="libs/javaparser-1.0.9.jar"/>
+	<classpathentry kind="lib" path="libs/jgrapht-0.8.3.jar"/>
+	<classpathentry kind="lib" path="libs/sql-schema-comparer.jar"/>
+	<classpathentry kind="lib" path="libs/sqlite-jdbc-3.7.15-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="libs/structureGraph-0.0.1.jar"/>
+	<classpathentry kind="lib" path="classes"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
