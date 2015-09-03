@@ -19,7 +19,6 @@
 
 package org.iti.sqlschemacomparerplugin.builder;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -43,16 +42,17 @@ import org.iti.sqlSchemaComparison.SqlStatementExpectationValidationResult;
 import org.iti.sqlSchemaComparison.SqlStatementExpectationValidator;
 import org.iti.sqlSchemaComparison.frontends.ISqlSchemaFrontend;
 import org.iti.sqlSchemaComparison.frontends.SqlStatementFrontend;
-import org.iti.sqlSchemaComparison.frontends.database.H2SchemaFrontend;
-import org.iti.sqlSchemaComparison.frontends.database.SqliteSchemaFrontend;
 import org.iti.sqlSchemaComparison.frontends.technologies.IJPASchemaFrontend;
 import org.iti.sqlSchemaComparison.vertex.ISqlElement;
 import org.iti.sqlSchemaComparison.vertex.SqlTableVertex;
+import org.iti.sqlschemacomparerplugin.utils.DatabaseManager;
 import org.iti.sqlschemacomparerplugin.utils.EclipseJPASchemaFrontend;
 import org.iti.sqlschemacomparerplugin.utils.ParseUtils;
+import org.iti.sqlschemacomparerplugin.utils.SqlSchemaManager;
 import org.iti.sqlschemacomparerplugin.utils.databaseformatter.IDatabaseIdentifierFormatter;
 import org.iti.sqlschemacomparerplugin.utils.databaseformatter.NullFormatter;
 import org.iti.sqlschemacomparerplugin.utils.databaseformatter.UpperCaseFormatter;
+import org.iti.structureGraph.comparison.StructureGraphComparisonException;
 import org.iti.structureGraph.nodes.IStructureElement;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
@@ -95,20 +95,6 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 			checkEntityDefinition(resource);
 			//return true to continue visiting children.
 			return true;
-		}
-	}
-
-	private enum DatabaseType {
-		SQLITE, H2
-	}
-
-	private class DatabaseFile {
-		public File databaseFile;
-		public DatabaseType databaseType;
-
-		public DatabaseFile(File databaseFile, DatabaseType databaseType) {
-			this.databaseFile = databaseFile;
-			this.databaseType = databaseType;
 		}
 	}
 
@@ -213,7 +199,7 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 	}
 
 	private IDatabaseIdentifierFormatter getFormatter() {
-		switch(databaseFile.databaseType) {
+		switch(databaseManager.getDatabaseFile().databaseType) {
 		case H2:
 			return new UpperCaseFormatter();
 		default:
@@ -333,25 +319,20 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 
 	private IProgressMonitor monitor;
 	private SqlStatementExpectationValidator statementValidator;
-	private long modificationStamp;
-	private DatabaseFile databaseFile;
+	private DatabaseManager databaseManager;
 	private List<String> ignoredFiles;
 
 	protected void fullBuild(final IProgressMonitor monitor)
 			throws CoreException {
 		this.monitor = monitor;
 
-		notifyAboutBuildStart();
-
 		try {
-			databaseFile = findDatabaseFile();
-			ignoredFiles = ParseUtils.getIgnoredFileNames(getProject());
-			
-			statementValidator = null;
-			
-			initializeValidator();
-			
+			initStatementChecker();
+
 			checkDatabaseAccess(null);
+		} catch (StructureGraphComparisonException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		} finally {
 			monitor.done();
 		}
@@ -361,116 +342,51 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 			IProgressMonitor monitor) throws CoreException {
 		this.monitor = monitor;
 
-		notifyAboutBuildStart();
-
 		try {
-			databaseFile = findDatabaseFile();
-			ignoredFiles = ParseUtils.getIgnoredFileNames(getProject());
-
-			initializeValidator();
+			initStatementChecker();
 
 			checkDatabaseAccess(delta);
+		} catch (StructureGraphComparisonException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		} finally {
 			monitor.done();
 		}
+	}
+
+	private void initStatementChecker() throws CoreException, StructureGraphComparisonException {
+		notifyAboutBuildStart();
+
+		databaseManager = new DatabaseManager();
+		ignoredFiles = ParseUtils.getIgnoredFileNames(getProject());
+
+		statementValidator = null;
+
+		databaseManager.update(getProject(), monitor);
+
+		if (statementValidator == null || databaseManager.databaseChanged()) {
+			monitor.subTask("Initialize validator");
+
+			initializeSqlSchemaComparison();
+		}
+
+		monitor.worked(1);
+	}
+
+	private void initializeSqlSchemaComparison() throws CoreException, StructureGraphComparisonException {
+		SqlSchemaManager schemaManager = sqlschemacomparerplugin.Activator.getDefault().getSchemaManager();
+
+		schemaManager.updateSchema(databaseManager.getDatabaseFile());
+
+		statementValidator = new SqlStatementExpectationValidator(schemaManager.getCurrentSchema());
 	}
 
 	private void notifyAboutBuildStart() {
 		monitor.beginTask(TASK_NAME, 3);
 	}
 
-	private DatabaseFile findDatabaseFile() throws CoreException {
-		DatabaseFile databaseFile = null;
-
-		monitor.subTask("Find SQLite database");
-
-		databaseFile = findSqliteDatabaseFile();
-
-		if (databaseFile == null) {
-			monitor.subTask("Find H2 database");
-
-			databaseFile = findH2DatabaseFile();
-		}
-
-		monitor.worked(1);
-
-		return databaseFile;
-	}
-
-	private void initializeValidator() throws CoreException {
-		if (statementValidator == null || databaseChanged(databaseFile)) {
-			monitor.subTask("Initialize validator");
-
-			initializeSqlSchemaComparison(databaseFile);
-		}
-
-		monitor.worked(1);
-	}
-
-	private boolean databaseChanged(DatabaseFile databaseFile) throws CoreException {
-		return databaseFile.databaseFile.lastModified() != modificationStamp;
-	}
-
-	private DatabaseFile findSqliteDatabaseFile() throws CoreException {
-		return findDatabaseFile(DatabaseType.SQLITE);
-	}
-
-	private DatabaseFile findH2DatabaseFile() throws CoreException {
-		return findDatabaseFile(DatabaseType.H2);
-	}
-
-	private DatabaseFile findDatabaseFile(DatabaseType databaseType) throws CoreException {
-		DatabaseFile database = null;
-		List<File> files = ParseUtils.findFilesByEnding(getProject(), getFileEnding(databaseType));
-
-		if (!files.isEmpty()) {
-			database = new DatabaseFile(files.get(0), databaseType);
-		}
-		
-		return database;
-	}
-
-	private String getFileEnding(DatabaseType databaseType) {
-		switch (databaseType) {
-		case SQLITE:
-			return "sqlite";
-		case H2:
-			return "db";
-		default:
-			throw new IllegalArgumentException(databaseType.toString()
-					+ "is not supported!");
-		}
-	}
-
-	private void initializeSqlSchemaComparison(DatabaseFile databaseFile) {
-		DirectedGraph<IStructureElement, DefaultEdge> schema = null;
-		
-		if (databaseFile != null) {
-			schema = generateSqlDatabaseSchema(databaseFile);
-			modificationStamp = databaseFile.databaseFile.lastModified();
-			
-			statementValidator = new SqlStatementExpectationValidator(schema);
-		}
-	}
-
-	private DirectedGraph<IStructureElement, DefaultEdge> generateSqlDatabaseSchema(DatabaseFile databaseFile) {
-		String databasePath = databaseFile.databaseFile.getAbsolutePath();
-		ISqlSchemaFrontend frontend = null;
-
-		switch (databaseFile.databaseType) {
-		case SQLITE:
-			frontend = new SqliteSchemaFrontend(databasePath);
-			break;
-		case H2:
-			frontend = new H2SchemaFrontend(databasePath.replaceAll("\\.mv\\.db$", ""));
-			break;
-		}
-		
-		return frontend.createSqlSchema();
-	}
-
 	private void checkDatabaseAccess(IResourceDelta delta) throws CoreException {
-		if (databaseFile == null) {
+		if (databaseManager.getDatabaseFile() == null) {
 			Status status = new Status(IStatus.ERROR,
 					BUILDER_ID,
 					"The project doesn't contain a database file in the project root.");
