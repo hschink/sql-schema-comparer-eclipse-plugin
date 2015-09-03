@@ -54,7 +54,7 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 
 	private IFile file = null;
 	private IDatabaseIdentifierFormatter formatter = new NullFormatter();
-	
+
 	private static class JPAAnnotationVisitor extends ASTVisitor {
 
 		public Map<String, String> classToTable = new HashMap<>();
@@ -82,7 +82,7 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 		private ISqlElement lastVisitedClass;
 
 		private IDatabaseIdentifierFormatter formatter;
-		
+
 		private Map<String, MethodDeclaration> possibleColumnMethods = new HashMap<>();
 
 		public JPAAnnotationVisitor(DirectedGraph<IStructureElement, DefaultEdge> schema,
@@ -97,20 +97,20 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 				processClass(node);
 				return true;
 			}
-			
+
 			return false;
 		}
 
 		private void processClass(TypeDeclaration n) {
 			String tableName = formatter.formatTable(getTableName(n));
 			ISqlElement table = SqlElementFactory.createSqlElement(SqlElementType.Table, tableName);
-			
+
 			table.setSourceElement(n);
-			
+
 			schema.addVertex(table);
-			
+
 			lastVisitedClass = table;
-			
+
 			classToTable.put(n.getName().toString(), tableName);
 			classDeclarations.put(n.getName().toString(), n);
 		}
@@ -121,7 +121,7 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 					&& isSupportedGetterMethod(node)
 					&& isColumnRepresentingMethod(node)) {
 				String setterName = node.getName().toString().substring(GETTER_PREFIX.length());
-				
+
 				possibleColumnMethods.put("set" + setterName, node);
 			} else if (isSetter(node) && possibleColumnMethods.get(node.getName().toString()) != null) {
 				processMethod(possibleColumnMethods.remove(node.getName().toString()));
@@ -176,32 +176,32 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 			String id = formatter.formatColumn(getColumnName(n));
 			String type = "?";
 			List<IColumnConstraint> constraints = new ArrayList<>();
-			
+
 			ISqlElement column = new SqlColumnVertex(id, type, lastVisitedClass.getSqlElementId());
-			
+
 			column.setSourceElement(n);
-			
+
 			((SqlColumnVertex) column).setConstraints(constraints);
-			
+
 			if (hasAnnotationOfType(ID, n.modifiers())) {
 				PrimaryKeyColumnConstraint constraint = new PrimaryKeyColumnConstraint("", column);
-				
+
 				constraints.add(constraint);
 			}
-			
+
 			schema.addVertex(column);
 			schema.addEdge(lastVisitedClass, column, new TableHasColumnEdge(lastVisitedClass, column));
 		}
 	}
-	
+
 	private static class PrimaryKeyVisitor extends ASTVisitor {
 
 		private DirectedGraph<IStructureElement, DefaultEdge> schema;
-		
+
 		private Map<String, String> classToTable;
-		
+
 		private Map<String, TypeDeclaration> classDeclarations = new HashMap<>();
-		
+
 		public PrimaryKeyVisitor(DirectedGraph<IStructureElement, DefaultEdge> schema,
 				Map<String, String> classToTable,
 				Map<String, TypeDeclaration> classDeclarations) {
@@ -216,16 +216,16 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 				processClass(node);
 				return true;
 			}
-			
+
 			return false;
 		}
 
 		private void processClass(TypeDeclaration n) {
 			ISqlElement primaryKeyColumn = getPrimaryKeyOfType(n);
-			
+
 			if (primaryKeyColumn == null) {
 				primaryKeyColumn = getPrimaryKeyOfSupertypes(n.getSuperclassType());
-				
+
 				setPrimaryKeyOfTable(n, primaryKeyColumn);
 			}
 		}
@@ -240,46 +240,46 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 				String id = foreignKeyColumn.getSqlElementId();
 				String type = foreignKeyColumn.getType();
 				List<IColumnConstraint> constraints = new ArrayList<>();
-				
+
 				ISqlElement column = new SqlColumnVertex(id, type, table.getSqlElementId());
-				
+
 				column.setSourceElement(n);
-				
+
 				((SqlColumnVertex) column).setConstraints(constraints);
-				
+
 				PrimaryKeyColumnConstraint constraint = new PrimaryKeyColumnConstraint("", column);
-				
+
 				constraints.add(constraint);
-				
+
 				schema.addVertex(column);
 				schema.addEdge(table, column, new TableHasColumnEdge(table, column));
 				schema.addEdge(table, column, new ForeignKeyRelationEdge(column, foreignKeyTable, foreignKeyColumn));
-			}			
+			}
 		}
 
 		private ISqlElement getPrimaryKeyOfType(TypeDeclaration type) {
 			String tableId = classToTable.get(type.getName().toString());
 			ISqlElement table = SqlElementFactory.getMatchingSqlElement(SqlElementType.Table, tableId, schema.vertexSet());
-			
+
 			return SqlElementFactory.getPrimaryKey(table, schema);
 		}
-		
+
 		private ISqlElement getPrimaryKeyOfSupertypes(Type superclassType) {
 			ISqlElement primaryKeyColumn = null;
-			
+
 			if (superclassType instanceof SimpleType) {
 				SimpleType simpleType = (SimpleType)superclassType;
 				TypeDeclaration superclass = classDeclarations.get(simpleType.getName());
-				
+
 				if (superclass != null) {
 					primaryKeyColumn = getPrimaryKeyOfType(superclass);
-				
+
 					if (primaryKeyColumn == null) {
 						primaryKeyColumn = getPrimaryKeyOfSupertypes(superclass.getSuperclassType());
 					}
 				}
 			}
-			
+
 			return primaryKeyColumn;
 		}
 	}
@@ -293,9 +293,9 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 			"OneToMany",
 			"OneToOne"
 		};
-		
+
 		private DirectedGraph<IStructureElement, DefaultEdge> schema;
-		
+
 		private Map<String, String> classToTable = new HashMap<>();
 
 		private ISqlElement lastVisitedClass;
@@ -316,13 +316,13 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 				processClass(node);
 				return true;
 			}
-			
+
 			return false;
 		}
 
 		private void processClass(TypeDeclaration n) {
 			String id = formatter.formatTable(getTableName(n));
-			
+
 			lastVisitedClass = SqlElementFactory.getMatchingSqlElement(SqlElementType.Table, id, schema.vertexSet());
 		}
 
@@ -331,7 +331,7 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 			if (isGetter(node) && hasAnnotationsOfType(RELATIONSHIP_ANNOTATIONS, node.modifiers())) {
 				processMethod(node);
 			}
-			
+
 			return super.visit(node);
 		}
 
@@ -342,7 +342,7 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 					return true;
 				}
 			}
-			
+
 			return false;
 		}
 
@@ -364,54 +364,54 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 				}
 			}
 		}
-		
+
 	}
 
 	private static String getTableName(TypeDeclaration n) {
 		String value = getAnnotationMemberValue(n.modifiers(), TABLE, TABLE_NAME);
-		
+
 		return (value == null) ? n.getName().toString() : value;
 	}
-	
+
 	private static boolean hasAnnotationOfType(String type, List<?> modifiers) {
 		for (Object object : modifiers) {
 			IExtendedModifier modifier = (IExtendedModifier)object;
-			
+
 			if (modifier.isAnnotation()) {
 				Annotation annotation = (Annotation)modifier;
-				
+
 				if (annotation.getTypeName().toString().equals(type))
 					return true;
-				
+
 			}
 		}
-		
+
 		return false;
 	}
-	
+
 	private static String getAnnotationMemberValue(List<?> modifiers,
 			String annotationName,
 			String attributeName) {
 		for (Object object : modifiers) {
 			IExtendedModifier modifier = (IExtendedModifier)object;
-			
+
 			if (modifier.isAnnotation()) {
 				Annotation annotation = (Annotation)modifier;
-				
+
 				if (annotation.getTypeName().toString().equals(annotationName)) {
 					NormalAnnotation a = (NormalAnnotation)annotation;
-					
+
 					for (Object value : a.values()) {
 						MemberValuePair p = (MemberValuePair)value;
-						
+
 						if (p.getName().toString().equals(attributeName))
 							return p.getValue().toString().replaceAll("\"", "");
 					}
 				}
-				
+
 			}
 		}
-		
+
 		return null;
 	}
 
@@ -425,49 +425,49 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 		} else if (hasAnnotationOfType(JOIN_COLUMN, n.modifiers())) {
 			value = getAnnotationMemberValue(n.modifiers(), JOIN_COLUMN, TABLE_NAME);
 		}
-		
+
 		return (value == null) ? n.getName().toString().substring(GETTER_PREFIX.length(), n.getName().toString().length()).toLowerCase()
 							   : value;
 	}
-	
+
 	@Override
 	public DirectedGraph<IStructureElement, DefaultEdge> createSqlSchema() {
 		DirectedGraph<IStructureElement, DefaultEdge> schema = new SimpleDirectedGraph<IStructureElement, DefaultEdge>(DefaultEdge.class);
 		List<CompilationUnit> cus = new ArrayList<>();
 		Map<String, String> classToTable = new HashMap<>();
 		Map<String, TypeDeclaration> classDeclarations = new HashMap<>();
-		
+
 		ICompilationUnit unit = JavaCore.createCompilationUnitFrom(file);
-		
+
 		if (unit != null)
 			cus.add((CompilationUnit)ParseUtils.parse(unit));
-		
+
 		for (CompilationUnit c : cus) {
 			parseJavaCompilationUnit(c, schema, classToTable, classDeclarations);
 		}
-		
+
 		for (CompilationUnit c : cus) {
 			createForeignKeyPrimaryRelationships(c, schema, classToTable, classDeclarations);
 		}
-		
+
 		for (CompilationUnit c : cus) {
 			createForeignKeyRelationships(c, schema, classToTable);
 		}
 
         return schema;
 	}
-	
-	private void parseJavaCompilationUnit(CompilationUnit cu, 
+
+	private void parseJavaCompilationUnit(CompilationUnit cu,
 			DirectedGraph<IStructureElement, DefaultEdge> schema,
-			Map<String, String> classToTable, 
+			Map<String, String> classToTable,
 			Map<String, TypeDeclaration> classDeclarations) {
 		JPAAnnotationVisitor visitor = new JPAAnnotationVisitor(schema, formatter);
 		cu.accept(visitor);
-		
+
 		classToTable.putAll(visitor.classToTable);
 		classDeclarations.putAll(visitor.classDeclarations);
 	}
-	
+
 	private void createForeignKeyPrimaryRelationships(CompilationUnit cu,
 			DirectedGraph<IStructureElement, DefaultEdge> schema,
 			Map<String, String> classToTable,
@@ -475,11 +475,11 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 		PrimaryKeyVisitor visitor = new PrimaryKeyVisitor(schema, classToTable, classDeclarations);
 		cu.accept(visitor);
 	}
-	
-	private void createForeignKeyRelationships(CompilationUnit cu, 
+
+	private void createForeignKeyRelationships(CompilationUnit cu,
 			DirectedGraph<IStructureElement, DefaultEdge> schema,
 			Map<String, String> classToTable) {
-		
+
 		ForeignKeyVisitor visitor = new ForeignKeyVisitor(schema, classToTable, formatter);
 		cu.accept(visitor);
 	}
@@ -487,7 +487,7 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 	public EclipseJPASchemaFrontend(IFile file) {
 		if (file == null)
 			throw new NullPointerException("Path to JPA file(s) must not be null or empty!");
-		
+
 		this.file = file;
 	}
 

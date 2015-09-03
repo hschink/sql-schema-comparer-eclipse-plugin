@@ -19,7 +19,7 @@ public class PluginUtils {
 		try {
 			IProjectDescription description = project.getDescription();
 			String[] natures = description.getNatureIds();
-			
+
 			for (int i = 0; i < natures.length; ++i) {
 				if (SqlSchemaComparerNature.NATURE_ID.equals(natures[i])) {
 					return i;
@@ -29,10 +29,10 @@ public class PluginUtils {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 		return -1;
 	}
-	
+
 	public static boolean isNatureActive(IProject project) {
 		return getNatureId(project) >= 0;
 	}
@@ -47,25 +47,25 @@ public class PluginUtils {
 
 	public static IProject getSelectedProject(ISelection currentSelection) {
 		IProject project = null;
-		
+
 		if (currentSelection instanceof IStructuredSelection) {
 			for (Iterator<?> it = ((IStructuredSelection) currentSelection).iterator(); it
 					.hasNext();) {
 				Object element = it.next();
-				
+
 				if (element instanceof IProject) {
 					project = (IProject) element;
 				} else if (element instanceof IAdaptable) {
 					project = (IProject) ((IAdaptable) element)
 							.getAdapter(IProject.class);
 				}
-				
+
 				if (project != null) {
 					break;
 				}
 			}
 		}
-		
+
 		return project;
 	}
 
