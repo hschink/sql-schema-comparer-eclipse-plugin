@@ -117,9 +117,6 @@ public class EclipseJPASchemaFrontend implements IJPASchemaFrontend {
 
 		@Override
 		public boolean visit(MethodDeclaration node) {
-			if (node.getName().toString().equals("setChangePasswordDate")) {
-				System.out.println();
-			}
 			if (isGetter(node)
 					&& isSupportedGetterMethod(node)
 					&& isColumnRepresentingMethod(node)) {
