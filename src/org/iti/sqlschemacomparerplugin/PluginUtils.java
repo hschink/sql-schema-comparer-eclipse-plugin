@@ -6,6 +6,7 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IProjectDescription;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IAdaptable;
+import org.eclipse.jdt.ui.JavaUI;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.ui.IWorkbenchWindow;
@@ -39,7 +40,7 @@ public class PluginUtils {
 
 	public static IProject getSelectedProject() {
 		IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
-		ISelection currentSelection = window.getSelectionService().getSelection("org.eclipse.jdt.ui.PackageExplorer");
+		ISelection currentSelection = window.getSelectionService().getSelection(JavaUI.ID_PACKAGES);
 
 		return getSelectedProject(currentSelection);
 	}
