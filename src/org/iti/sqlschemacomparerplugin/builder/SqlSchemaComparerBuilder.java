@@ -175,11 +175,11 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 					if (resultsAvaiable(result)) {
 						for (ISqlElement table : result.getMissingTables()) {
 							int lineNumber = ParseUtils.getLineNumber(file, ((ASTNode)table.getSourceElement()).getStartPosition());
-							addMarker(JPA_ENTITY_MARKER_TYPE, file, "Missing Table: " + table.getSqlElementId(), lineNumber, IMarker.SEVERITY_ERROR);
+							addMarker(JPA_ENTITY_MARKER_TYPE, file, "Missing Table: " + table.getName(), lineNumber, IMarker.SEVERITY_ERROR);
 						}
 
 						for (ISqlElement column : result.getMissingColumns()) {
-							addColumnMarker(file, column, String.format("Missing Column: %s", column.getSqlElementId()));
+							addColumnMarker(file, column, String.format("Missing Column: %s", column.getName()));
 						}
 
 						for (ISqlElement column : result.getMissingButReachableColumns().keySet()) {
@@ -187,7 +187,7 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 							StringBuilder message = new StringBuilder();
 
 							message.append("Missing but reachable Column ");
-							message.append(column.getSqlElementId());
+							message.append(column.getName());
 							setReachablePathString(message, pathElements);
 
 							addColumnMarker(file, column, message.toString());
@@ -225,9 +225,8 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 	}
 
 	private void checkSqlStatement(IFile file, Entry<String, Integer> entry) {
-		ISqlSchemaFrontend frontend = new SqlStatementFrontend(entry.getKey(), null);
-
 		try {
+			ISqlSchemaFrontend frontend = new SqlStatementFrontend(entry.getKey(), null);
 			DirectedGraph<IStructureElement, DefaultEdge> statementSchema = frontend.createSqlSchema();
 
 			if (statementSchema != null) {
@@ -260,7 +259,7 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 			message.append(title + ": [");
 
 			for (ISqlElement element : list) {
-				message.append(element.getSqlElementId() + ", ");
+				message.append(element.getName() + ", ");
 			}
 
 			message.setLength(message.length() - 2);
@@ -278,7 +277,7 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 			message.append(title + ": [");
 
 			for (ISqlElement element : list.keySet()) {
-				message.append(element.getSqlElementId());
+				message.append(element.getName());
 
 				setReachablePathString(message, list.get(element).get(0));
 
@@ -307,7 +306,7 @@ public class SqlSchemaComparerBuilder extends IncrementalProjectBuilder {
 		for (int x = 0; x < tables.size(); x++) {
 			ISqlElement element = tables.get(x);
 
-			message.append(element.getSqlElementId().toString());
+			message.append(element.getName().toString());
 
 			if (x < tables.size() - 1) {
 				message.append(" > ");
