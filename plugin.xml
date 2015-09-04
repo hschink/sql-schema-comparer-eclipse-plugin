@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?eclipse version="3.4"?>
 <plugin>
 
    <extension
@@ -86,6 +85,33 @@
          		id="org.iti.sqlschemacomparerplugin.toggleNature.toggleState">
    			</state>
       </command>
+   </extension>
+   <extension
+         point="org.eclipse.ui.views">
+      <e4view
+            allowMultiple="false"
+            category="org.iti.sqlschemacomparerplugin.views.category"
+            class="org.iti.sqlschemacomparerplugin.views.SchemaChangesView"
+            icon="icons/sample.gif"
+            id="org.iti.sqlschemacomparerplugin.views.SchemaChangesView"
+            name="Schema Changes View"
+            restorable="true">
+      </e4view>
+      <category
+            id="org.iti.sqlschemacomparerplugin.views.category"
+            name="SQL Schema Comparer">
+      </category>
+   </extension>
+   <extension
+         point="org.eclipse.ui.perspectiveExtensions">
+      <perspectiveExtension
+            targetID="*">
+         <view
+               id="org.iti.sqlschemacomparerplugin.views.SchemaChangesView"
+               minimized="false"
+               relationship="stack">
+         </view>
+      </perspectiveExtension>
    </extension>
 
 </plugin>
