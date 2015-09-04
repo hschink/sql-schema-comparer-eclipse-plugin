@@ -123,15 +123,15 @@ public class ParseUtils {
 			return null;
 		}
 	}
-	
+
 	public static int getLineNumber(IFile file, int startPosition) {
 		ICompilationUnit unit = JavaCore.createCompilationUnitFrom(file);
-		
+
 		CompilationUnit node = (CompilationUnit)parse(unit);
-		
+
 		return node.getLineNumber(startPosition);
 	}
-	
+
 	public static Map<String, Integer> getAllJavaStrings(IFile file) {
 		Map<String, Integer> javaStringsAndLineNumbers = new HashMap<>();
 		ICompilationUnit unit = JavaCore.createCompilationUnitFrom(file);
@@ -139,14 +139,17 @@ public class ParseUtils {
 		QueryStringFinder visitor = new QueryStringFinder();
 
 		node.accept(visitor);
-		
-		for (StringLiteral literal : visitor.javaStringLiterals) {
-			javaStringsAndLineNumbers.put(literal.getLiteralValue(), node.getLineNumber(literal.getStartPosition()));
+
+		for (StringLiteral literal : visitor.queryStrings) {
+			if (literal != null) {
+				javaStringsAndLineNumbers.put(literal.getLiteralValue(),
+						node.getLineNumber(literal.getStartPosition()));
+			}
 		}
-		
+
 		return javaStringsAndLineNumbers;
 	}
-	
+
 	public static ASTNode parse(ICompilationUnit unit) {
 		ASTParser parser = ASTParser.newParser(AST.JLS8);
 		parser.setKind(ASTParser.K_COMPILATION_UNIT);
@@ -170,13 +173,13 @@ public class ParseUtils {
 	public static List<String> getIgnoredFileNames(IResource resource) {
 		List<File> files = findFilesByName(resource, ".ssc.ignore");
 		List<String> ignored = new ArrayList<>();
-		
+
 		if (!files.isEmpty()) {
 			BufferedReader reader = null;
 
 			try {
 				reader = new BufferedReader(new FileReader(files.get(0)));
-				
+
 				while (reader.ready()) {
 					ignored.add(reader.readLine().trim());
 				}
@@ -195,7 +198,7 @@ public class ParseUtils {
 				}
 			}
 		}
-		
+
 		return ignored;
 	}
 
