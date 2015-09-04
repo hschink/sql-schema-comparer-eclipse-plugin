@@ -6,10 +6,10 @@
 	<classpathentry kind="lib" path="libs/h2-1.4.181.jar"/>
 	<classpathentry kind="lib" path="libs/javaparser-1.0.9.jar"/>
 	<classpathentry kind="lib" path="libs/jgrapht-0.8.3.jar"/>
-	<classpathentry kind="lib" path="libs/sql-schema-comparer.jar"/>
 	<classpathentry kind="lib" path="libs/sqlite-jdbc-3.7.15-SNAPSHOT.jar"/>
-	<classpathentry kind="lib" path="libs/structureGraph-0.0.1.jar"/>
 	<classpathentry kind="lib" path="classes"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="libs/sqlSchemaComparer-0.0.2.jar"/>
+	<classpathentry kind="lib" path="libs/structureGraph-0.0.2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

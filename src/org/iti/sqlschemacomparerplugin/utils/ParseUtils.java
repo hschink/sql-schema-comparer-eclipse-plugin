@@ -32,46 +32,124 @@ import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.Expression;
+import org.eclipse.jdt.core.dom.IBinding;
+import org.eclipse.jdt.core.dom.IMethodBinding;
+import org.eclipse.jdt.core.dom.ITypeBinding;
+import org.eclipse.jdt.core.dom.IVariableBinding;
+import org.eclipse.jdt.core.dom.MethodInvocation;
+import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.StringLiteral;
+import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 
 public class ParseUtils {
 
-	private static class JavaStringFinder extends ASTVisitor {
+	private static class QueryStringFinder extends ASTVisitor {
 
-		public List<StringLiteral> javaStringLiterals = new ArrayList<>();
-		
+		public List<StringLiteral> queryStrings = new ArrayList<>();
+
+		private CompilationUnit compilationUnit;
+
 		@Override
-		public boolean visit(StringLiteral node) {
-			javaStringLiterals.add(node);
-			
-			return false;
-		}		
+		public boolean visit(CompilationUnit compilationUnit) {
+			this.compilationUnit = compilationUnit;
+
+			return true;
+		}
+
+		@Override
+		public boolean visit(MethodInvocation methodInvocation) {
+			if (isQueryExecutionCall(methodInvocation)) {
+				queryStrings.add(getQueryString(methodInvocation));
+
+				return false;
+			}
+
+			return true;
+		}
+
+		private boolean isQueryExecutionCall(MethodInvocation methodInvocation) {
+			return isJDBCStatementExecution(methodInvocation) || isJDBCStatementPreparation(methodInvocation);
+		}
+
+		private boolean isJDBCStatementExecution(MethodInvocation methodInvocation) {
+			return isMethodInvocationOnClass(methodInvocation, "java.sql.Statement", "executeQuery");
+		}
+
+		private boolean isJDBCStatementPreparation(MethodInvocation methodInvocation) {
+			return isMethodInvocationOnClass(methodInvocation, "java.sql.Connection", "prepareStatement");
+		}
+
+		private boolean isMethodInvocationOnClass(MethodInvocation methodInvocation,
+				String expectedFullQualifiedClassName, String expectedMethodName) {
+			String methodName = methodInvocation.getName().getIdentifier();
+			IMethodBinding methodBinding = methodInvocation.resolveMethodBinding();
+			ITypeBinding typeBinding = methodBinding.getDeclaringClass();
+			String className = typeBinding.getQualifiedName();
+
+			return className.equals(expectedFullQualifiedClassName) && methodName.equals(expectedMethodName);
+		}
+
+		private StringLiteral getQueryString(MethodInvocation methodInvocation) {
+			Object firstArgument = methodInvocation.arguments().get(0); // TODO: It may not always be the first argument...
+
+			if (firstArgument instanceof StringLiteral) {
+				return (StringLiteral)firstArgument;
+			} else if (firstArgument instanceof SimpleName) {
+				return resolveQueryExecutionArgument((SimpleName)firstArgument);
+			}
+
+			return null;
+		}
+
+		private StringLiteral resolveQueryExecutionArgument(SimpleName argument) {
+			IBinding binding = argument.resolveBinding();
+
+			if (binding.getKind() == IBinding.VARIABLE) {
+				IVariableBinding variableBinding = (IVariableBinding) binding;
+				IVariableBinding declaration = variableBinding.getVariableDeclaration();
+				ASTNode node = compilationUnit.findDeclaringNode(declaration);
+
+				if (node instanceof VariableDeclarationFragment) {
+					VariableDeclarationFragment fragment = (VariableDeclarationFragment)node;
+					Expression initializer = fragment.getInitializer();
+
+					if (initializer instanceof StringLiteral) {
+						return (StringLiteral)initializer;
+					}
+				}
+			}
+
+			return null;
+		}
 	}
-	
+
 	public static int getLineNumber(IFile file, int startPosition) {
 		ICompilationUnit unit = JavaCore.createCompilationUnitFrom(file);
-		
+
 		CompilationUnit node = (CompilationUnit)parse(unit);
-		
+
 		return node.getLineNumber(startPosition);
 	}
-	
+
 	public static Map<String, Integer> getAllJavaStrings(IFile file) {
 		Map<String, Integer> javaStringsAndLineNumbers = new HashMap<>();
-		JavaStringFinder visitor = new JavaStringFinder();
 		ICompilationUnit unit = JavaCore.createCompilationUnitFrom(file);
-		
 		CompilationUnit node = (CompilationUnit)parse(unit);
-		
+		QueryStringFinder visitor = new QueryStringFinder();
+
 		node.accept(visitor);
-		
-		for (StringLiteral literal : visitor.javaStringLiterals) {
-			javaStringsAndLineNumbers.put(literal.getLiteralValue(), node.getLineNumber(literal.getStartPosition()));
+
+		for (StringLiteral literal : visitor.queryStrings) {
+			if (literal != null) {
+				javaStringsAndLineNumbers.put(literal.getLiteralValue(),
+						node.getLineNumber(literal.getStartPosition()));
+			}
 		}
-		
+
 		return javaStringsAndLineNumbers;
 	}
-	
+
 	public static ASTNode parse(ICompilationUnit unit) {
 		ASTParser parser = ASTParser.newParser(AST.JLS8);
 		parser.setKind(ASTParser.K_COMPILATION_UNIT);
@@ -95,13 +173,13 @@ public class ParseUtils {
 	public static List<String> getIgnoredFileNames(IResource resource) {
 		List<File> files = findFilesByName(resource, ".ssc.ignore");
 		List<String> ignored = new ArrayList<>();
-		
+
 		if (!files.isEmpty()) {
 			BufferedReader reader = null;
 
 			try {
 				reader = new BufferedReader(new FileReader(files.get(0)));
-				
+
 				while (reader.ready()) {
 					ignored.add(reader.readLine().trim());
 				}
@@ -120,7 +198,7 @@ public class ParseUtils {
 				}
 			}
 		}
-		
+
 		return ignored;
 	}
 
