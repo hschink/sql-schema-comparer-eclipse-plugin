@@ -1,8 +1,10 @@
 package org.iti.sqlschemacomparerplugin.utils;
 
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Observable;
 import java.util.Observer;
+import java.util.stream.Collectors;
 
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
@@ -46,7 +48,14 @@ public class SchemaChangeListener implements Listener, Observer {
 		TreeItem parent = item.getParentItem();
 		SqlSchemaComparisonResult result = (SqlSchemaComparisonResult) parent.getData();
 
-		for (Entry<ISqlElement, SchemaModification> entry : result.getModifications().entrySet()) {
+		Map<ISqlElement, SchemaModification> validModifications
+			=	result.getModifications()
+					  .entrySet()
+					  .stream()
+					  .filter(e -> !e.getValue().equals(SchemaModification.NO_MODIFICATION))
+					  .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+
+		for (Entry<ISqlElement, SchemaModification> entry : validModifications.entrySet()) {
 			if (index == 0) {
 				item.setText(String.format("%s %s", entry.getValue(), entry.getKey()));
 				break;
